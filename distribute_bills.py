@@ -14,22 +14,20 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 
-def send_mail(message: str, attachment_file_paths: list[str] = None) -> None:
+def send_mail(sender_email: str,
+              smtp_server: str,
+              username: str,
+              password: str,
+              receiver_emails: list[str],
+              subject: str,
+              message: str,
+              attachment_file_paths: list[str] = None,
+              port: int = 587) -> None:
     if attachment_file_paths is None:
         attachment_file_paths = []
-    port: int = 587  # For starttls # TODO: Ask nati
-    smtp_server: str = "smtp.office365.com"  # TODO: Ask nati
-    sender_email: str = "christoph.ungricht@outlook.com"
-    receiver_emails: list[str] = [
-        "christoph.ungricht@outlook.com",
-    ]
-    username: str = "christoph.ungricht@outlook.com"
-    password: str = os.environ.get("EMAIL_PASSWORD")
-    assert password is not None
 
     message_sent = MIMEMultipart()
-    message_sent["Subject"] = f"Rechnung von "\
-                              f"{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
+    message_sent["Subject"] = subject
     message_sent["From"] = sender_email
     message_sent["To"] = ', '.join(receiver_emails)
 
@@ -58,6 +56,7 @@ def send_mail(message: str, attachment_file_paths: list[str] = None) -> None:
 
 
 def app() -> int:
+    """Application entry point"""
 
     msg: str = ""
     attachments: list[str] = []
@@ -66,9 +65,29 @@ def app() -> int:
     elif len(sys.argv) > 2:
         attachments = sys.argv[2:]
 
+    sender_email: str = "info@kaesers-schloss.ch"
+    smtp_server: str = "mail5.peaknetworks.net"
+    username: str = "info@kaesers-schloss.ch"
+    # smtp_server: str = "smtp.office365.com"
+    # sender_email: str = "christoph.ungricht@outlook.com"
+    # username: str = "christoph.ungricht@outlook.com"
+    subject = f"Rechnung von {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
+    password: str = os.environ.get("EMAIL_PASSWORD")
+    receiver_emails: list[str] = [
+        "christoph.ungricht@outlook.com",
+    ]
+    assert password is not None
+
     if (msg or attachments):
         try:
-            send_mail(msg, attachments)
+            send_mail(sender_email=sender_email,
+                      smtp_server=smtp_server,
+                      username=username,
+                      password=password,
+                      receiver_emails=receiver_emails,
+                      subject=subject,
+                      message=msg,
+                      attachment_file_paths=attachments)
         except Exception:
             print(f"Could not send:\n\"\n{msg}\"", file=sys.stderr)
             import traceback
