@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import re
 import smtplib
 import ssl
 import string
@@ -14,11 +15,18 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pprint import pprint
-from typing import Mapping, Optional
+from typing import Mapping, Optional, Sequence
 
 import openpyxl
+from frozendict import frozendict
 from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
+
+EMAIL_REGEX = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+
+
+def valid_email(email: str) -> bool:
+    return re.fullmatch(EMAIL_REGEX, email)
 
 
 def col2num(col: str):
@@ -147,11 +155,13 @@ def test_email():
         print("Nothing to send. No message or attachment given.")
 
 
-def app() -> int:
-    """Application entry point"""
+def list_bill_file_paths(bill_folder_path: str) -> Sequence[str]:
+    bill_folder_path = os.path.abspath(os.path.normpath(bill_folder_path))
+    pdf_files = filter(lambda f: ".pdf" in f, os.listdir(bill_folder_path))
+    return list(map(lambda f: os.path.join(bill_folder_path, f), pdf_files))
 
-    test_email()
 
+def test_name_to_email():
     name_to_mail = name_to_mail_from_excel(
         "./data/Zahlungen Gmüeschistli-20221019.xlsx",
         sheet_name="Abos",
@@ -161,6 +171,75 @@ def app() -> int:
         start=4,
         stop=108)
     pprint(name_to_mail)
+
+
+def is_name_in_bill(name: str, bill_path: str):
+    min_matches = 2
+    bill_name = os.path.basename(bill_path)
+    total_matches = 0
+    name = name.lower()
+    bill_name = bill_name.lower()
+    for token in name.split(" "):
+        if token in bill_name:
+            total_matches += 1
+            if total_matches >= min_matches:
+                return True
+    return False
+
+
+def map_bill_to_names(
+        bill_file_paths: Sequence[str],
+        name_to_email: Mapping[str,
+                               str]) -> Mapping[str, list[Mapping[str, str]]]:
+
+    bill_to_name_and_email = {}
+    for bill in bill_file_paths:
+        matching_names = filter(lambda n_e: is_name_in_bill(n_e[0], bill),
+                                name_to_email.items())
+        bill_to_name_and_email[bill] = list(
+            map(lambda x: {x[0]: x[1]}, matching_names))
+
+    return bill_to_name_and_email
+
+
+def map_name_to_bills(
+        bill_file_paths: Sequence[str],
+        name_to_email: Mapping[str,
+                               str]) -> Mapping[Mapping[str, str], list[str]]:
+
+    name_to_email_and_bill = {}
+    for (name, email) in name_to_email.items():
+        matching_bills = list(
+            filter(lambda b: is_name_in_bill(name, b), bill_file_paths))
+        name_to_email_and_bill[frozendict({name: email})] = matching_bills
+    return name_to_email_and_bill
+
+
+def test_bill_paths():
+    bill_file_paths = list_bill_file_paths("data/rechnungen/")
+    pprint(bill_file_paths)
+
+
+def app() -> int:
+    """Application entry point"""
+
+    # test_email()
+    # test_name_to_email()
+    # test_bill_paths()
+    bill_file_paths = list_bill_file_paths("data/rechnungen/")
+    name_to_mail = name_to_mail_from_excel(
+        "./data/Zahlungen Gmüeschistli-20221019.xlsx",
+        sheet_name="Abos",
+        first_name_column="A",
+        last_name_column="B",
+        email_column="I",
+        start=4,
+        stop=108)
+    name_to_bills = map_name_to_bills(bill_file_paths, name_to_mail)
+    pprint(name_to_bills)
+    bill_to_names = map_bill_to_names(bill_file_paths, name_to_mail)
+    pprint(bill_to_names)
+
     return 0
 
 
