@@ -6,12 +6,58 @@ from __future__ import annotations
 import os
 import smtplib
 import ssl
+import string
 import sys
 from datetime import datetime
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from pprint import pprint
+from typing import Mapping, Optional
+
+import openpyxl
+from openpyxl.workbook import Workbook
+from openpyxl.worksheet.worksheet import Worksheet
+
+
+def col2num(col: str):
+    num = 0
+    for c in col:
+        if c in string.ascii_letters:
+            num = num * 26 + (ord(c.upper()) - ord('A')) + 1
+    return num
+
+
+def name_to_mail_from_excel(
+        excel_file_path: str,
+        first_name_column: str,
+        email_column: str,
+        last_name_column: Optional[str] = None,
+        sheet_name: Optional[str] = None,
+        start: int = 1,
+        stop: Optional[int] = None) -> list[Mapping[str, str]]:
+    workbook: Workbook = openpyxl.load_workbook(excel_file_path)
+    sheet: Worksheet = workbook[sheet_name]
+    stop = stop if stop is not None else sheet.max_row
+    first_name_column_idx = col2num(first_name_column)
+    last_name_column_idx = col2num(
+        last_name_column) if last_name_column is not None else None
+    email_column_idx = col2num(email_column)
+    names = {}
+    for row in sheet.iter_rows(min_row=start, max_row=stop):
+        first_name: str = row[first_name_column_idx - 1].value
+        last_name: Optional[str] = row[
+            last_name_column_idx -
+            1].value if last_name_column is not None else None
+
+        name = first_name.strip(" ")
+        if last_name is not None:
+            name = f"{name} {last_name.strip(' ')}"
+        email = row[email_column_idx - 1].value.strip(" ")
+        names[name] = email
+
+    return names
 
 
 def send_mail(sender_email: str,
@@ -23,6 +69,8 @@ def send_mail(sender_email: str,
               message: str,
               attachment_file_paths: list[str] = None,
               port: int = 587) -> None:
+    """Send an email."""
+
     if attachment_file_paths is None:
         attachment_file_paths = []
 
@@ -55,9 +103,7 @@ def send_mail(sender_email: str,
                         message_sent.as_string())
 
 
-def app() -> int:
-    """Application entry point"""
-
+def test_email():
     msg: str = ""
     attachments: list[str] = []
     if len(sys.argv) > 1:
@@ -100,6 +146,21 @@ def app() -> int:
     else:
         print("Nothing to send. No message or attachment given.")
 
+
+def app() -> int:
+    """Application entry point"""
+
+    test_email()
+
+    name_to_mail = name_to_mail_from_excel(
+        "./data/Zahlungen Gmüeschistli-20221019.xlsx",
+        sheet_name="Abos",
+        first_name_column="A",
+        last_name_column="B",
+        email_column="I",
+        start=4,
+        stop=108)
+    pprint(name_to_mail)
     return 0
 
 
