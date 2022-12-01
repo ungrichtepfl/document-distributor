@@ -1,0 +1,5 @@
+openpyxl
+frozendict
+
+# dev 
+pylint
