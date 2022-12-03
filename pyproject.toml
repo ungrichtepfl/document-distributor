@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "document_distributor"
+version = "0.0.1"
+dependencies = ["openpyxl"]
+
+[tool.setuptools.packages]
+find = {}
+
+[project.optional-dependencies]
+dev = ["pylint", "isort", "yapf", "pytest"]
