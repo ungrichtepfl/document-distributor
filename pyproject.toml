@@ -5,7 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "document_distributor"
 version = "0.0.1"
-dependencies = ["openpyxl"]
+dependencies = ["openpyxl", "toolz"]
+
+[project.scripts]
+ddist = "document_distributor.cli:app"
+ddist-gui = "document_distributor.gui:app"
 
 [tool.setuptools.packages]
 find = {}

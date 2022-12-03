@@ -3,14 +3,16 @@ from __future__ import annotations
 from pprint import pprint
 
 from document_distributor.document_distributor import list_document_file_paths
-from document_distributor.document_distributor import map_document_to_names
-from document_distributor.document_distributor import map_name_to_documents
+from document_distributor.document_distributor import \
+    map_document_to_names_and_emails
+from document_distributor.document_distributor import \
+    map_name_and_email_to_document
 from document_distributor.document_distributor import name_to_mail_from_excel
 from document_distributor.document_distributor import send_mail
 
 
 def test_document_paths():
-    document_file_paths = list_document_file_paths("tests/test_data/test_documents")
+    document_file_paths = list_document_file_paths("tests/test_data/test_documents", [".pdf"])
     pprint(document_file_paths)
 
 
@@ -46,7 +48,7 @@ def test_name_to_email():
 
 
 def test_name_to_documents_and_vice_versa():
-    document_file_paths = list_document_file_paths("tests/test_data/test_documents")
+    document_file_paths = list_document_file_paths("tests/test_data/test_documents", [".pdf"])
     name_to_mail = name_to_mail_from_excel("tests/test_data/test_info.xlsx",
                                            sheet_name="Test Sheet",
                                            first_name_column="A",
@@ -54,7 +56,7 @@ def test_name_to_documents_and_vice_versa():
                                            email_column="D",
                                            start=4,
                                            stop=5)
-    name_to_documents = map_name_to_documents(document_file_paths, name_to_mail)
+    name_to_documents = map_name_and_email_to_document(document_file_paths, name_to_mail)
     pprint(name_to_documents)
-    document_to_names = map_document_to_names(document_file_paths, name_to_mail)
+    document_to_names = map_document_to_names_and_emails(document_file_paths, name_to_mail)
     pprint(document_to_names)
