@@ -15,10 +15,9 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pprint import pprint
-from typing import FrozenSet, Iterable, Mapping, Optional, Sequence
+from typing import Mapping, Optional, Sequence
 
 import openpyxl
-from frozendict import frozendict
 from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
@@ -64,7 +63,7 @@ def name_to_mail_from_excel(excel_file_path: str,
         email = row[email_column_idx - 1].value.strip(" ")
         names[name] = email
 
-    return frozendict(names)
+    return names
 
 
 def send_mail(sender_email: str,
@@ -110,11 +109,11 @@ def send_mail(sender_email: str,
                         message_sent.as_string())
 
 
-def list_document_file_paths(document_folder_path: str) -> FrozenSet[str]:
+def list_document_file_paths(document_folder_path: str) -> Sequence[str]:
     document_folder_path = os.path.abspath(
         os.path.normpath(document_folder_path))
     pdf_files = filter(lambda f: ".pdf" in f, os.listdir(document_folder_path))
-    return frozenset(
+    return tuple(
         map(lambda f: os.path.join(document_folder_path, f), pdf_files))
 
 
@@ -133,33 +132,31 @@ def is_name_in_document(name: str, document_path: str):
 
 
 def map_document_to_names(
-    document_file_paths: Iterable[str], name_to_email: Mapping[str, str]
-) -> Mapping[str, FrozenSet[Mapping[str, str]]]:
+        document_file_paths: Sequence[str],
+        name_to_email: Mapping[str, str]) -> Mapping[str, Mapping[str, str]]:
 
     document_to_name_and_email = {}
     for document in document_file_paths:
         matching_names = filter(
             lambda n_e: valid_email(n_e[1]) and is_name_in_document(
                 n_e[0], document), name_to_email.items())
-        document_to_name_and_email[document] = frozenset(
-            map(lambda x: {x[0]: x[1]}, matching_names))
+        document_to_name_and_email[document] = dict(matching_names)
 
     return document_to_name_and_email
 
 
 def map_name_to_documents(
-    document_file_paths: Iterable[str], name_to_email: Mapping[str, str]
-) -> Mapping[Mapping[str, str], FrozenSet[str]]:
+    document_file_paths: Sequence[str],
+    name_to_email: Mapping[str,
+                           str]) -> Mapping[tuple[str, str], Sequence[str]]:
 
     name_to_email_and_document = {}
     for (name, email) in name_to_email.items():
-        matching_documents = frozenset(
-            filter(
-                lambda b: valid_email(email) and is_name_in_document(name, b),
-                document_file_paths))
-        name_to_email_and_document[frozendict({name:
-                                               email})] = matching_documents
-    return frozendict(name_to_email_and_document)
+        matching_documents = filter(
+            lambda b: valid_email(email) and is_name_in_document(name, b),
+            document_file_paths)
+        name_to_email_and_document[(name, email)] = tuple(matching_documents)
+    return name_to_email_and_document
 
 
 def test_document_paths():
