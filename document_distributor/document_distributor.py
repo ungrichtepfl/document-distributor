@@ -3,15 +3,16 @@
 
 from __future__ import annotations
 
-import os
-import re
-import smtplib
-import ssl
-import string
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import os
+import re
+import smtplib
+import ssl
+from ssl import SSLContext
+import string
 from typing import Mapping, Optional, Sequence
 
 import openpyxl
@@ -65,13 +66,16 @@ def name_to_mail_from_excel(excel_file_path: str,
 
 def send_mail(sender_email: str,
               smtp_server: str,
-              username: str,
-              password: str,
               receiver_emails: Sequence[str],
               subject: str,
               message: str,
+              port: int = 587,
+              use_starttls: bool = True,
+              starttls_context: Optional[SSLContext] = ssl.create_default_context(),
+              username: Optional[str] = None,
+              password: Optional[str] = None,
               attachment_file_paths: Sequence[str] | None = None,
-              port: int = 587) -> None:
+              ) -> None:
     """Send an email."""
 
     if attachment_file_paths is None:
@@ -80,7 +84,7 @@ def send_mail(sender_email: str,
     message_sent = MIMEMultipart()
     message_sent["Subject"] = subject
     message_sent["From"] = sender_email
-    message_sent["To"] = ', '.join(receiver_emails)
+    message_sent["To"] = ", ".join(receiver_emails)
 
     message_sent.attach(MIMEText(message, "plain"))
 
@@ -96,13 +100,16 @@ def send_mail(sender_email: str,
                 f"attachment; filename= {os.path.basename(attachment)}")
             message_sent.attach(part)
 
-    context = ssl.create_default_context()
-    with smtplib.SMTP(smtp_server, port) as server:
-        server.ehlo()  # Can be omitted
-        server.starttls(context=context)
-        server.ehlo()  # Can be omitted
-        server.login(username, password)
-        server.sendmail(sender_email, receiver_emails,
+    with smtplib.SMTP(smtp_server, port) as client:
+        if use_starttls:
+            client.ehlo()
+            client.starttls(context=starttls_context)
+            # client.starttls()
+        if username is not None and password is not None:
+            client.ehlo()
+            client.login(username, password)
+        client.ehlo()
+        client.sendmail(sender_email, receiver_emails,
                         message_sent.as_string())
 
 

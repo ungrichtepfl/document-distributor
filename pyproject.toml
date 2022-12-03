@@ -11,4 +11,27 @@ dependencies = ["openpyxl"]
 find = {}
 
 [project.optional-dependencies]
-dev = ["pylint", "isort", "yapf", "pytest"]
+dev = [
+  # linters:
+  "pylint",
+  # formatters:
+  "isort",
+  "yapf",
+  # unittests:
+  "pytest",
+  "smtpdfix",
+]
+
+[tool.isort]
+profile = "google"
+skip = ["venv", 'env']
+
+[tool.yapf]
+based_on_style = "google"
+column_limit = 120
+split_before_logical_operator = true
+split_before_arithmetic_operator = true
+split_before_dict_set_generator = true
+
+[tool.yapfignore]
+ignore_patterns = ["venv/*", "env/*"]
