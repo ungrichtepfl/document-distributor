@@ -56,7 +56,7 @@ def name_to_mail_from_excel(excel_file_path: str,
         first_name: str = row[first_name_column_idx - 1].value
         last_name: Optional[str] = row[
             last_name_column_idx -
-            1].value if last_name_column is not None else None
+            1].value if last_name_column_idx is not None else None
 
         name = first_name.strip(" ")
         if last_name is not None:
@@ -110,58 +110,61 @@ def send_mail(sender_email: str,
                         message_sent.as_string())
 
 
-def list_bill_file_paths(bill_folder_path: str) -> FrozenSet[str]:
-    bill_folder_path = os.path.abspath(os.path.normpath(bill_folder_path))
-    pdf_files = filter(lambda f: ".pdf" in f, os.listdir(bill_folder_path))
+def list_document_file_paths(document_folder_path: str) -> FrozenSet[str]:
+    document_folder_path = os.path.abspath(
+        os.path.normpath(document_folder_path))
+    pdf_files = filter(lambda f: ".pdf" in f, os.listdir(document_folder_path))
     return frozenset(
-        map(lambda f: os.path.join(bill_folder_path, f), pdf_files))
+        map(lambda f: os.path.join(document_folder_path, f), pdf_files))
 
 
-def is_name_in_bill(name: str, bill_path: str):
+def is_name_in_document(name: str, document_path: str):
     min_matches = 2
-    bill_name = os.path.basename(bill_path)
+    document_name = os.path.basename(document_path)
     total_matches = 0
     name = name.lower()
-    bill_name = bill_name.lower()
+    document_name = document_name.lower()
     for token in name.split(" "):
-        if token in bill_name:
+        if token in document_name:
             total_matches += 1
             if total_matches >= min_matches:
                 return True
     return False
 
 
-def map_bill_to_names(
-    bill_file_paths: Iterable[str], name_to_email: Mapping[str, str]
+def map_document_to_names(
+    document_file_paths: Iterable[str], name_to_email: Mapping[str, str]
 ) -> Mapping[str, FrozenSet[Mapping[str, str]]]:
 
-    bill_to_name_and_email = {}
-    for bill in bill_file_paths:
+    document_to_name_and_email = {}
+    for document in document_file_paths:
         matching_names = filter(
-            lambda n_e: valid_email(n_e[1]) and is_name_in_bill(n_e[0], bill),
-            name_to_email.items())
-        bill_to_name_and_email[bill] = frozenset(
+            lambda n_e: valid_email(n_e[1]) and is_name_in_document(
+                n_e[0], document), name_to_email.items())
+        document_to_name_and_email[document] = frozenset(
             map(lambda x: {x[0]: x[1]}, matching_names))
 
-    return bill_to_name_and_email
+    return document_to_name_and_email
 
 
-def map_name_to_bills(
-    bill_file_paths: Iterable[str], name_to_email: Mapping[str, str]
+def map_name_to_documents(
+    document_file_paths: Iterable[str], name_to_email: Mapping[str, str]
 ) -> Mapping[Mapping[str, str], FrozenSet[str]]:
 
-    name_to_email_and_bill = {}
+    name_to_email_and_document = {}
     for (name, email) in name_to_email.items():
-        matching_bills = frozenset(
-            filter(lambda b: valid_email(email) and is_name_in_bill(name, b),
-                   bill_file_paths))
-        name_to_email_and_bill[frozendict({name: email})] = matching_bills
-    return frozendict(name_to_email_and_bill)
+        matching_documents = frozenset(
+            filter(
+                lambda b: valid_email(email) and is_name_in_document(name, b),
+                document_file_paths))
+        name_to_email_and_document[frozendict({name:
+                                               email})] = matching_documents
+    return frozendict(name_to_email_and_document)
 
 
-def test_bill_paths():
-    bill_file_paths = list_bill_file_paths("data/rechnungen/")
-    pprint(bill_file_paths)
+def test_document_paths():
+    document_file_paths = list_document_file_paths("data/rechnungen/")
+    pprint(document_file_paths)
 
 
 def test_email():
@@ -220,8 +223,8 @@ def test_name_to_email():
     pprint(name_to_mail)
 
 
-def test_name_to_bills_and_vice_versa():
-    bill_file_paths = list_bill_file_paths("data/rechnungen/")
+def test_name_to_documents_and_vice_versa():
+    document_file_paths = list_document_file_paths("data/rechnungen/")
     name_to_mail = name_to_mail_from_excel(
         "./data/Zahlungen Gmüeschistli-20221019.xlsx",
         sheet_name="Abos",
@@ -230,10 +233,12 @@ def test_name_to_bills_and_vice_versa():
         email_column="I",
         start=4,
         stop=108)
-    name_to_bills = map_name_to_bills(bill_file_paths, name_to_mail)
-    pprint(name_to_bills)
-    bill_to_names = map_bill_to_names(bill_file_paths, name_to_mail)
-    pprint(bill_to_names)
+    name_to_documents = map_name_to_documents(document_file_paths,
+                                              name_to_mail)
+    pprint(name_to_documents)
+    document_to_names = map_document_to_names(document_file_paths,
+                                              name_to_mail)
+    pprint(document_to_names)
 
 
 def app() -> int:
@@ -241,8 +246,8 @@ def app() -> int:
 
     test_email()
     test_name_to_email()
-    test_bill_paths()
-    test_name_to_bills_and_vice_versa()
+    test_document_paths()
+    test_name_to_documents_and_vice_versa()
 
     return 0
 
