@@ -34,6 +34,9 @@ dev = [
   "flake8-use-fstring",
   "pep8-naming",
   "pylint",
+  # type-checker:
+  "mypy",
+  "types-openpyxl",
   # formatters:
   "isort",
   "yapf",
@@ -41,6 +44,8 @@ dev = [
   # unittests:
   "pytest",
   "smtpdfix",
+  # updater:
+  "pip-tools",
 ]
 
 [tool.isort]
