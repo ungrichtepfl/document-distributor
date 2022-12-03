@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
-import os
 from pprint import pprint
-import sys
 
 from document_distributor.document_distributor import list_document_file_paths
 from document_distributor.document_distributor import map_document_to_names
@@ -13,11 +10,11 @@ from document_distributor.document_distributor import send_mail
 
 
 def test_document_paths():
-    document_file_paths = list_document_file_paths(
-        "tests/test_data/test_documents")
+    document_file_paths = list_document_file_paths("tests/test_data/test_documents")
     pprint(document_file_paths)
 
-def test_email_starttsl_authenticated(smtpd, msg, sender_email,receiver_emails, subject, attachments):
+
+def test_email_starttsl_authenticated(smtpd, msg, sender_email, receiver_emails, subject, attachments):
     smtpd.config.use_ssl = True
     smtpd.config.use_starttls = True
     smtpd.config.enforce_auth = True
@@ -38,30 +35,26 @@ def test_email_starttsl_authenticated(smtpd, msg, sender_email,receiver_emails, 
 
 
 def test_name_to_email():
-    name_to_mail = name_to_mail_from_excel(
-        "tests/test_data/test_info.xlsx",
-        sheet_name="Test Sheet",
-        first_name_column="A",
-        last_name_column="B",
-        email_column="D",
-        start=4,
-        stop=5)
+    name_to_mail = name_to_mail_from_excel("tests/test_data/test_info.xlsx",
+                                           sheet_name="Test Sheet",
+                                           first_name_column="A",
+                                           last_name_column="B",
+                                           email_column="D",
+                                           start=4,
+                                           stop=5)
     pprint(name_to_mail)
 
 
 def test_name_to_documents_and_vice_versa():
     document_file_paths = list_document_file_paths("tests/test_data/test_documents")
-    name_to_mail = name_to_mail_from_excel(
-        "tests/test_data/test_info.xlsx",
-        sheet_name="Test Sheet",
-        first_name_column="A",
-        last_name_column="B",
-        email_column="D",
-        start=4,
-        stop=5)
-    name_to_documents = map_name_to_documents(document_file_paths,
-                                              name_to_mail)
+    name_to_mail = name_to_mail_from_excel("tests/test_data/test_info.xlsx",
+                                           sheet_name="Test Sheet",
+                                           first_name_column="A",
+                                           last_name_column="B",
+                                           email_column="D",
+                                           start=4,
+                                           stop=5)
+    name_to_documents = map_name_to_documents(document_file_paths, name_to_mail)
     pprint(name_to_documents)
-    document_to_names = map_document_to_names(document_file_paths,
-                                              name_to_mail)
+    document_to_names = map_document_to_names(document_file_paths, name_to_mail)
     pprint(document_to_names)

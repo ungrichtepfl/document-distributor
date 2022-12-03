@@ -13,10 +13,31 @@ find = {}
 [project.optional-dependencies]
 dev = [
   # linters:
+  "flake8",                       # TODO: Bump version when bug in 6.0.0 is fixed
+  "flake8-bandit",
+  "flake8-bugbear",
+  "flake8-builtins",
+  "flake8-coding",
+  "flake8-commas",
+  "flake8-comprehensions",
+  "flake8-docstrings",
+  "flake8-expression-complexity",
+  "flake8-import-order",
+  "flake8-isort",
+  "flake8-pep3101",
+  "flake8-plugin-utils",
+  "flake8-polyfill",
+  "flake8-pytest",
+  "flake8-pytest-style",
+  "flake8-requirements",
+  "flake8-simplify",
+  "flake8-use-fstring",
+  "pep8-naming",
   "pylint",
   # formatters:
   "isort",
   "yapf",
+  "toml",
   # unittests:
   "pytest",
   "smtpdfix",
