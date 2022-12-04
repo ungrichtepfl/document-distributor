@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-"""Send bild to clients"""
+"""Send documents to clients"""
 
 from __future__ import annotations
 
@@ -16,15 +15,49 @@ from ssl import SSLContext
 import string
 from typing import Iterable, Mapping, Optional, Sequence
 
+from dataclasses_json import dataclass_json
 import openpyxl
 from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 import toolz
 
+from document_distributor.__version__ import __version__
+
 _EMAIL_REGEX = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
 _DEFAULT_SSL_CONTEXT = ssl.create_default_context()
 
 SUPPORTED_FILE_TYPES: Sequence[tuple[str, str]] = (("excel files", "*.xlsx"),)
+
+_DEFAULT_MESSAGE: str = f"This message was send by ddist-{__version__}."
+_DEFAULT_SUBJECT: str = f"Automatic mail from ddist-{__version__}."
+
+
+@dataclass_json
+@dataclass
+class MainConfig:
+    document_folder_path: str
+    excel_file_path: str
+    first_name_column: str
+    email_column: str
+    document_file_type: Optional[list[str]] = None
+    last_name_column: Optional[str] = None
+    sheet_name: Optional[str] = None
+    start_row_for_names: int = 1
+    stop_row_for_names: Optional[int] = None
+
+
+@dataclass_json
+@dataclass
+class EmailConfig:
+    sender_email: str
+    smtp_server: str
+    port: int = 587
+    use_starttls: bool = True
+    starttls_context: Optional[SSLContext] = _DEFAULT_SSL_CONTEXT
+    subject: str = _DEFAULT_SUBJECT
+    message: str = _DEFAULT_MESSAGE
+    username: Optional[str] = None
+    password: Optional[str] = None
 
 
 @dataclass

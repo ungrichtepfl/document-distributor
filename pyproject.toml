@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "document_distributor"
 version = "0.0.1"
-dependencies = ["openpyxl", "toolz"]
+dependencies = ["openpyxl", "toolz", "dataclasses-json"]
 
 [project.scripts]
 ddist = "document_distributor.cli:app"
