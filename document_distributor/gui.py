@@ -1,21 +1,27 @@
+from tkinter import Checkbutton
+from tkinter import END
 from tkinter import Entry
 from tkinter import filedialog as fd
 from tkinter import Frame
+from tkinter import IntVar
 from tkinter import Label
 from tkinter import N
 from tkinter import S
 from tkinter import StringVar
 from tkinter import Text
+from tkinter import Toplevel
 from tkinter import ttk
 from tkinter import W
 import tkinter as tk
 from typing import Optional
 
 from document_distributor.document_distributor import DocumentEmailName
+from document_distributor.document_distributor import EmailConfig
+from document_distributor.document_distributor import MainConfig
 from document_distributor.document_distributor import SUPPORTED_FILE_TYPES
 
 
-class DocumentDetailEntry(Frame):
+class DocumentConfigFrame(Frame):
 
     def __init__(self, parent=None, **kwargs):
         super().__init__(master=parent, **kwargs)
@@ -30,7 +36,7 @@ class DocumentDetailEntry(Frame):
         return self._document_file_types.get().strip(" ").split(" ")
 
 
-class NameEmailDetailEntries(Frame):
+class NameEmailConfigFrame(Frame):
 
     def __init__(self, parent=None, **kwargs):
         super().__init__(master=parent, **kwargs)
@@ -92,7 +98,67 @@ class NameEmailDetailEntries(Frame):
         return res if res else None
 
 
-class EmailMessage(Frame):
+class EmailServerConfigFrame(Frame):
+
+    def __init__(self, parent=None, **kwargs):
+        super().__init__(master=parent, **kwargs)
+        self._sender_email = StringVar()
+        self.label_sender_email = Label(self, text="Sender Email*")
+        self.label_sender_email.grid(row=0, column=0, sticky=W)
+        self.entry_sender_email = Entry(self, textvariable=self._sender_email)
+        self.entry_sender_email.grid(row=0, column=1, sticky=W)
+        self._smtp_server = StringVar()
+        self.label_smtp_server = Label(self, text="SMTP Server*")
+        self.label_smtp_server.grid(row=1, column=0, sticky=W)
+        self.entry_smtp_server = Entry(self, textvariable=self._smtp_server)
+        self.entry_smtp_server.grid(row=1, column=1, sticky=W)
+        self._smtp_port = IntVar(value=587)
+        self.label_smtp_port = Label(self, text="SMTP Port*")
+        self.label_smtp_port.grid(row=2, column=0, sticky=W)
+        self.entry_smtp_port = Entry(self, textvariable=self._smtp_port)
+        self.entry_smtp_port.grid(row=2, column=1, sticky=W)
+        self._use_starttls = IntVar(value=1)
+        self.label_use_starttls = Label(self, text="Use Starttls*")
+        self.label_use_starttls.grid(row=3, column=0, sticky=W)
+        self.entry_use_starttls = Checkbutton(self, variable=self._use_starttls)
+        self.entry_use_starttls.grid(row=3, column=1, sticky=W)
+        self._username = StringVar()
+        self.label_username = Label(self, text="Username*")
+        self.label_username.grid(row=4, column=0, sticky=W)
+        self.entry_username = Entry(self, textvariable=self._username)
+        self.entry_username.grid(row=4, column=1, sticky=W)
+        self._password = StringVar()
+        self.label_password = Label(self, text="Password*")
+        self.label_password.grid(row=5, column=0, sticky=W)
+        self.entry_password = Entry(self, textvariable=self._password, show="*")
+        self.entry_password.grid(row=5, column=1, sticky=W)
+
+    @property
+    def sender_email(self) -> str:
+        return self._sender_email.get()
+
+    @property
+    def smtp_server(self) -> str:
+        return self._smtp_server.get()
+
+    @property
+    def smtp_port(self) -> int:
+        return self._smtp_port.get()
+
+    @property
+    def use_starttls(self) -> bool:
+        return bool(self._use_starttls.get())
+
+    @property
+    def username(self) -> str:
+        return self._username.get()
+
+    @property
+    def password(self) -> str:
+        return self._password.get()
+
+
+class EmailMessageConfigFrame(Frame):
 
     def __init__(self, parent=None, **kwargs):
         super().__init__(master=parent, **kwargs)
@@ -101,11 +167,18 @@ class EmailMessage(Frame):
         self.label_email_subject.grid(row=0, column=0, sticky=W)
         self.entry_email_subject = Entry(self, textvariable=self._email_subject)
         self.entry_email_subject.grid(row=1, column=0, sticky=W)
-        self._email_message = StringVar()
         self.label_email_message = Label(self, text="Email Text*")
         self.label_email_message.grid(row=2, column=0, sticky=W)
-        self.entry_email_message = Text(self)
-        self.entry_email_message.grid(row=3, column=0, sticky=W)
+        self.text_email_message = Text(self)
+        self.text_email_message.grid(row=3, column=0, sticky=W)
+
+    @property
+    def email_subject(self) -> str:
+        return self._email_subject.get()
+
+    @property
+    def email_message(self) -> str:
+        return self.text_email_message.get("1.0", END)
 
 
 class FolderSelect(Frame):
@@ -151,6 +224,24 @@ class FileSelect(Frame):
         return self._file_path.get()
 
 
+def set_email_config(email_config: EmailConfig):
+    pop_up = Toplevel()
+    email_server_config_frame = EmailServerConfigFrame(pop_up)
+    email_server_config_frame.grid(row=0)
+
+    def set_and_destroy():
+        email_config.password = email_server_config_frame.password
+        email_config.username = email_server_config_frame.username
+        email_config.port = email_server_config_frame.smtp_port
+        email_config.smtp_server = email_server_config_frame.smtp_server
+        email_config.use_starttls = email_server_config_frame.use_starttls
+        pop_up.destroy()
+
+    ok_button = ttk.Button(pop_up, text="Ok", command=set_and_destroy)
+    ok_button.grid(row=1)
+    print(f"In popup {email_config}")
+
+
 def gui_root() -> tk.Tk:
     root = tk.Tk()
     root.title("File Distributor")
@@ -158,38 +249,42 @@ def gui_root() -> tk.Tk:
     root.geometry("300x150")
     document_dir_select = FolderSelect(root, "Document Directory*")
     document_dir_select.grid(row=0, sticky=W)
-    document_detail_entries = DocumentDetailEntry(root)
-    document_detail_entries.grid(row=1, sticky=W)
+    document_config_frame = DocumentConfigFrame(root)
+    document_config_frame.grid(row=1, sticky=W)
     name_email_file_select = FileSelect(root,
                                         "Name and Email File*",
                                         filetypes=(*SUPPORTED_FILE_TYPES, ("All files", "*.*")))
     name_email_file_select.grid(row=2, sticky=W)
-    name_email_details_entries = NameEmailDetailEntries(root)
-    name_email_details_entries.grid(row=3, sticky=W)
-    email_message_entries = EmailMessage(root)
-    email_message_entries.grid(row=0, column=1, rowspan=4, sticky=N + S)
+    name_email_config_frame = NameEmailConfigFrame(root)
+    name_email_config_frame.grid(row=3, sticky=W)
+    email_message_config_frame = EmailMessageConfigFrame(root)
+    email_message_config_frame.grid(row=0, column=1, rowspan=4, sticky=N + S)
+    email_config = EmailConfig("test_email", "test_server")
+    email_config_button = ttk.Button(root, text="Email Config", command=lambda: set_email_config(email_config))
+    email_config_button.grid(row=4, column=1)
+    print(f"In main {email_config}")
     start_button = ttk.Button(root,
                               text="Start",
-                              command=lambda: process(root, document_dir_select, document_detail_entries,
-                                                      name_email_file_select, name_email_details_entries))
-    start_button.grid(row=4)
+                              command=lambda: process(root, document_dir_select, document_config_frame,
+                                                      name_email_file_select, name_email_config_frame))
+    start_button.grid(row=4, column=0)
 
     return root
 
 
-def process(root: tk.Tk, document_dir_select: FolderSelect, document_detail: DocumentDetailEntry,
-            name_email_file_select: FileSelect, name_email_details: NameEmailDetailEntries):
-    start_row_for_names = int(name_email_details.start_row_for_names)
+def process(root: tk.Tk, document_dir_select: FolderSelect, document_config_frame: DocumentConfigFrame,
+            name_email_file_select: FileSelect, name_email_config_frame: NameEmailConfigFrame):
+    start_row_for_names = int(name_email_config_frame.start_row_for_names)
     stop_row_for_names = int(
-        name_email_details.stop_row_for_names) if name_email_details.stop_row_for_names is not None else None
+        name_email_config_frame.stop_row_for_names) if name_email_config_frame.stop_row_for_names is not None else None
     DocumentEmailName.from_data_paths(
         document_folder_path=document_dir_select.folder_path,
         excel_file_path=name_email_file_select.file_path,
-        first_name_column=name_email_details.first_name_column,
-        email_column=name_email_details.email_column,
-        document_file_type=document_detail.document_file_types,
-        last_name_column=name_email_details.last_name_column,
-        sheet_name=name_email_details.sheet_name,
+        first_name_column=name_email_config_frame.first_name_column,
+        email_column=name_email_config_frame.email_column,
+        document_file_type=document_config_frame.document_file_types,
+        last_name_column=name_email_config_frame.last_name_column,
+        sheet_name=name_email_config_frame.sheet_name,
         start_row_for_names=start_row_for_names,
         stop_row_for_names=stop_row_for_names,
     )
