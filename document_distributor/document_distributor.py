@@ -7,6 +7,7 @@ from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import json
 import os
 import re
 import smtplib
@@ -30,6 +31,28 @@ SUPPORTED_FILE_TYPES: Sequence[tuple[str, str]] = (("excel files", "*.xlsx"),)
 
 _DEFAULT_MESSAGE: str = f"This message was send by ddist-{__version__}."
 _DEFAULT_SUBJECT: str = f"Automatic mail from ddist-{__version__}."
+
+MAIN_CONFIG_JSON_NAME = "general"
+EMAIL_CONFIG_JSON_NAME = "email"
+
+
+def dump_config(out_file_path: str, main_config: MainConfig, email_config: EmailConfig) -> None:
+    obj = {
+        MAIN_CONFIG_JSON_NAME: main_config.to_dict(),  # type: ignore # decorator added method
+        EMAIL_CONFIG_JSON_NAME: email_config.to_dict(),  # type: ignore
+    }
+
+    with open(out_file_path, "w", encoding="utf-8") as f:
+        f.write(json.dumps(obj))
+
+
+def load_config(out_file_path: str) -> tuple[MainConfig, EmailConfig]:
+    with open(out_file_path, "r", encoding="utf-8") as f:
+        obj = json.loads(f.read())
+
+    main_config = MainConfig.from_dict(obj[MAIN_CONFIG_JSON_NAME])  # type: ignore # decorator added method
+    email_config = EmailConfig.from_dict(obj[EMAIL_CONFIG_JSON_NAME])  # type: ignore
+    return main_config, email_config
 
 
 @dataclass_json
