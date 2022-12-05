@@ -35,23 +35,34 @@ _DEFAULT_SUBJECT: str = f"Automatic mail from ddist-{__version__}."
 MAIN_CONFIG_JSON_NAME = "general"
 EMAIL_CONFIG_JSON_NAME = "email"
 
+ROOT_PATH: str = os.path.dirname(os.path.abspath(__file__))
 
-def dump_config(out_file_path: str, main_config: MainConfig, email_config: EmailConfig) -> None:
+CONFIG_FILE_PATH = os.path.join(ROOT_PATH, "ddist-conf.json")
+
+
+def dump_config(main_config: MainConfig, email_config: EmailConfig) -> None:
     obj = {
         MAIN_CONFIG_JSON_NAME: main_config.to_dict(),  # type: ignore # decorator added method
         EMAIL_CONFIG_JSON_NAME: email_config.to_dict(),  # type: ignore
     }
 
-    with open(out_file_path, "w", encoding="utf-8") as f:
+    with open(CONFIG_FILE_PATH, "w", encoding="utf-8") as f:
         f.write(json.dumps(obj))
 
 
-def load_config(out_file_path: str) -> tuple[MainConfig, EmailConfig]:
-    with open(out_file_path, "r", encoding="utf-8") as f:
-        obj = json.loads(f.read())
+def load_config() -> tuple[MainConfig, EmailConfig]:
+    main_config: MainConfig
+    email_config: EmailConfig
+    if os.path.isfile(CONFIG_FILE_PATH):
+        with open(CONFIG_FILE_PATH, "r", encoding="utf-8") as f:
+            obj = json.loads(f.read())
 
-    main_config = MainConfig.from_dict(obj[MAIN_CONFIG_JSON_NAME])  # type: ignore # decorator added method
-    email_config = EmailConfig.from_dict(obj[EMAIL_CONFIG_JSON_NAME])  # type: ignore
+        main_config = MainConfig.from_dict(obj[MAIN_CONFIG_JSON_NAME])  # type: ignore # decorator added method
+        email_config = EmailConfig.from_dict(obj[EMAIL_CONFIG_JSON_NAME])  # type: ignore
+    else:
+        main_config = MainConfig(document_folder_path="", excel_file_path="", first_name_column="", email_column="")
+        email_config = EmailConfig(sender_email="", smtp_server="")
+
     return main_config, email_config
 
 
@@ -76,7 +87,7 @@ class EmailConfig:
     smtp_server: str
     port: int = 587
     use_starttls: bool = True
-    starttls_context: Optional[SSLContext] = _DEFAULT_SSL_CONTEXT
+    # starttls_context: Optional[SSLContext] = _DEFAULT_SSL_CONTEXT # TODO: Add support for SSL context
     subject: str = _DEFAULT_SUBJECT
     message: str = _DEFAULT_MESSAGE
     username: Optional[str] = None
