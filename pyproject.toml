@@ -8,8 +8,8 @@ version = "0.0.1"
 dependencies = ["openpyxl", "toolz", "dataclasses-json"]
 
 [project.scripts]
-ddist = "document_distributor.cli:app"
-ddist-gui = "document_distributor.gui:app"
+ddist = "document_distributor.cli:main"
+ddist-gui = "document_distributor.gui:main"
 
 [tool.setuptools.packages]
 find = {}
@@ -17,7 +17,7 @@ find = {}
 [project.optional-dependencies]
 dev = [
   # linters:
-  "flake8",                       # TODO: Bump version when bug in 6.0.0 is fixed
+  "flake8",
   "flake8-bandit",
   "flake8-bugbear",
   "flake8-builtins",
@@ -50,6 +50,8 @@ dev = [
   "smtpdfix",
   # updater:
   "pip-tools",
+  # installer:
+  "pyinstaller",
 ]
 
 [tool.isort]
