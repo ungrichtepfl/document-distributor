@@ -53,6 +53,9 @@ def dump_config(main_config: MainConfig, email_config: EmailConfig) -> None:
         EMAIL_CONFIG_JSON_NAME: email_config.to_dict(),  # type: ignore
     }
 
+    if not os.path.isdir(os.path.dirname(CONFIG_FILE_PATH)):
+        os.makedirs(os.path.dirname(CONFIG_FILE_PATH), exist_ok=True)
+
     with open(CONFIG_FILE_PATH, "w", encoding="utf-8") as f:
         f.write(json.dumps(obj))
 
