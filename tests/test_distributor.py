@@ -8,7 +8,7 @@ from document_distributor.document_distributor import \
 from document_distributor.document_distributor import \
     map_name_and_email_to_document
 from document_distributor.document_distributor import name_to_mail_from_excel
-from document_distributor.document_distributor import send_mail
+from document_distributor.document_distributor import send_email
 
 
 def test_document_paths():
@@ -21,7 +21,7 @@ def test_email_starttsl_authenticated(smtpd, msg, sender_email, receiver_emails,
     smtpd.config.use_starttls = True
     smtpd.config.enforce_auth = True
 
-    send_mail(sender_email=sender_email,
+    send_email(sender_email=sender_email,
               smtp_server=smtpd.hostname,
               password=smtpd.config.login_password,
               username=smtpd.config.login_username,

@@ -8,6 +8,7 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import json
+import logging
 import os
 import re
 import smtplib
@@ -24,10 +25,16 @@ import toolz
 
 from document_distributor.__version__ import __version__
 
+_log = logging.getLogger(__name__)
+
 _EMAIL_REGEX = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
 _DEFAULT_SSL_CONTEXT = ssl.create_default_context()
 
-SUPPORTED_FILE_TYPES: Sequence[tuple[str, str]] = (("excel files", "*.xlsx"),)
+FileExtension = str
+FilePath = str
+EmailAddress = str
+
+SUPPORTED_FILE_TYPES: Sequence[tuple[str, FileExtension]] = (("excel files", "*.xlsx"),)
 
 _DEFAULT_MESSAGE: str = f"This message was send by ddist-{__version__}."
 _DEFAULT_SUBJECT: str = f"Automatic mail from ddist-{__version__}."
@@ -69,11 +76,11 @@ def load_config() -> tuple[MainConfig, EmailConfig]:
 @dataclass_json
 @dataclass
 class MainConfig:
-    document_folder_path: str
-    excel_file_path: str
+    document_folder_path: FilePath
+    excel_file_path: FilePath
     first_name_column: str
     email_column: str
-    document_file_type: Optional[list[str]] = None
+    document_file_type: Optional[list[FileExtension]] = None
     last_name_column: Optional[str] = None
     sheet_name: Optional[str] = None
     start_row_for_names: int = 1
@@ -94,13 +101,26 @@ class EmailConfig:
     password: Optional[str] = None
 
 
+def send_emails(document_email_name: DocumentEmailName,
+                email_config: EmailConfig) -> Mapping[FilePath, tuple[str, EmailAddress]]:
+    document_to_email_name_not_send = {}
+    config = email_config.__dict__
+    for (document_path, (name, email)) in document_email_name.document_to_unambiguous_name_and_email().items():
+        try:
+            send_email(receiver_emails=[email], attachment_file_paths=[document_path], **config)
+        except Exception as e:  # pylint: disable=broad-except, can raise a different of exceptions (user input)
+            _log.error(e, exc_info=True)
+            document_to_email_name_not_send[document_path] = (name, email)
+    return document_to_email_name_not_send
+
+
 @dataclass
 class DocumentEmailName:
     documents_paths: Sequence[str]
-    name_to_email: Mapping[str, str]
-    valid_name_to_email: Mapping[str, str]
-    valid_name_and_email_to_documents: Mapping[tuple[str, str], Sequence[str]]
-    valid_document_to_names_and_emails: Mapping[str, Mapping[str, str]]
+    name_to_email: Mapping[str, EmailAddress]
+    valid_name_to_email: Mapping[str, EmailAddress]
+    valid_name_and_email_to_documents: Mapping[tuple[str, EmailAddress], Sequence[FilePath]]
+    document_to_valid_names_and_emails: Mapping[FilePath, Mapping[str, EmailAddress]]
 
     @classmethod
     def from_data_paths(cls,
@@ -122,6 +142,50 @@ class DocumentEmailName:
         return cls(document_file_paths, name_to_email, valid_name_to_email, valid_name_and_email_to_documents,
                    valid_document_to_names_and_emails)
 
+    def document_to_unambiguous_name_and_email(self) -> Mapping[FilePath, tuple[str, EmailAddress]]:
+        documents_and_one_name_to_email = toolz.valfilter(lambda v: len(v) == 1,
+                                                          self.document_to_valid_names_and_emails)
+        return toolz.valmap(lambda x: tuple(x.items())[0], documents_and_one_name_to_email)
+
+    def info(self) -> str:
+        names_getting_no_email: set[str] = set(
+            self.name_to_email.keys()) - {name
+                                          for (name, _) in self.valid_name_to_email.items()}
+        names_matching_no_documents = toolz.valfilter(lambda s: len(s) == 0, self.valid_name_and_email_to_documents)
+
+        names_getting_no_email.update(n for (n, _) in names_matching_no_documents.keys())
+        document_to_name_and_email_not_sent = toolz.valfilter(lambda v: len(v) != 1,
+                                                              self.document_to_valid_names_and_emails)
+        document_to_unambiguous_name_and_email = self.document_to_unambiguous_name_and_email()
+
+        info_strings = []
+        if document_to_name_and_email_not_sent:
+            info_strings.append(
+                "The following documents could not be sent as they did not match with a name or have a invalid email:")
+            info_strings.extend(f"- {os.path.basename(d):<50}" for d in document_to_name_and_email_not_sent)
+        else:
+            info_strings.append("All documents could be matched with a name.")
+
+        info_strings.append("")
+
+        if document_to_unambiguous_name_and_email:
+            info_strings.append("The following documents will be send:")
+            s = (f"- {os.path.basename(d):<50} -> {n[0]}" for (d, n) in document_to_unambiguous_name_and_email.items())
+            info_strings.extend(s)
+        else:
+            info_strings.append("Nothing could be sent!")
+            return "\n".join(info_strings)
+
+        info_strings.append("")
+
+        if names_getting_no_email:
+            info_strings.append("The following people will not receive any document:")
+            info_strings.extend(f"- {n}" for n in names_getting_no_email)
+        else:
+            info_strings.append("Everybody will receive a document.")
+
+        return "\n".join(info_strings)
+
 
 def _valid_email(email: str) -> bool:
     return re.fullmatch(_EMAIL_REGEX, email) is not None
@@ -135,13 +199,13 @@ def _col2num(col: str) -> int:
     return num
 
 
-def name_to_mail_from_excel(excel_file_path: str,
+def name_to_mail_from_excel(excel_file_path: FilePath,
                             first_name_column: str,
                             email_column: str,
                             last_name_column: Optional[str] = None,
                             sheet_name: Optional[str] = None,
                             start: int = 1,
-                            stop: Optional[int] = None) -> Mapping[str, str]:
+                            stop: Optional[int] = None) -> Mapping[str, EmailAddress]:
     workbook: Workbook = openpyxl.load_workbook(excel_file_path)
     sheet: Worksheet = workbook[sheet_name]
     stop = stop if stop is not None else sheet.max_row
@@ -162,7 +226,7 @@ def name_to_mail_from_excel(excel_file_path: str,
     return names
 
 
-def send_mail(
+def send_email(
     sender_email: str,
     smtp_server: str,
     receiver_emails: Sequence[str],
@@ -208,7 +272,8 @@ def send_mail(
         client.sendmail(sender_email, receiver_emails, message_sent.as_string())
 
 
-def list_document_file_paths(document_folder_path: str, file_types: Optional[list[str]] = None) -> Sequence[str]:
+def list_document_file_paths(document_folder_path: FilePath,
+                             file_types: Optional[Sequence[FileExtension]] = None) -> Sequence[FilePath]:
     document_folder_path = os.path.abspath(os.path.normpath(document_folder_path))
     documents: Iterable[str] = os.listdir(document_folder_path)
     if file_types is not None:
@@ -216,7 +281,7 @@ def list_document_file_paths(document_folder_path: str, file_types: Optional[lis
     return tuple(os.path.join(document_folder_path, f) for f in documents)
 
 
-def _is_name_in_document(name: str, document_path: str):
+def _is_name_in_document(name: str, document_path: FilePath) -> bool:
     min_matches = 2
     document_name = os.path.basename(document_path)
     total_matches = 0
@@ -230,8 +295,9 @@ def _is_name_in_document(name: str, document_path: str):
     return False
 
 
-def map_document_to_names_and_emails(document_file_paths: Sequence[str],
-                                     name_to_email: Mapping[str, str]) -> Mapping[str, Mapping[str, str]]:
+def map_document_to_names_and_emails(
+        document_file_paths: Sequence[FilePath],
+        name_to_email: Mapping[str, EmailAddress]) -> Mapping[FilePath, Mapping[str, EmailAddress]]:
 
     document_to_name_and_email = {}
     for document in document_file_paths:
