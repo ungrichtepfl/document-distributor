@@ -1,3 +1,4 @@
+import os
 from tkinter import Checkbutton
 from tkinter import E
 from tkinter import END
@@ -6,6 +7,7 @@ from tkinter import filedialog as fd
 from tkinter import Frame
 from tkinter import IntVar
 from tkinter import Label
+from tkinter import LEFT
 from tkinter import N
 from tkinter import S
 from tkinter import StringVar
@@ -16,11 +18,13 @@ from tkinter import W
 import tkinter as tk
 from typing import Optional
 
+import toolz
+
 from document_distributor.document_distributor import DocumentEmailName
 from document_distributor.document_distributor import dump_config
 from document_distributor.document_distributor import EmailConfig
 from document_distributor.document_distributor import load_config
-from document_distributor.document_distributor import MainConfig
+from document_distributor.document_distributor import send_emails
 from document_distributor.document_distributor import SUPPORTED_FILE_TYPES
 
 
@@ -116,7 +120,7 @@ class NameEmailConfigFrame(Frame):
     @property
     def stop_row_for_names(self) -> Optional[int]:
         res = self._stop_row_for_names.get().strip(" ")
-        return res if res else None
+        return int(res) if res else None
 
     def set_stop_row_for_names(self, val: Optional[int]):
         self._stop_row_for_names.set(str(val) if val is not None else "")
@@ -341,7 +345,7 @@ def app() -> int:
 
     start_button = ttk.Button(root,
                               text="Start",
-                              command=lambda: process(document_dir_select, document_config_frame,
+                              command=lambda: process(email_config, document_dir_select, document_config_frame,
                                                       name_email_file_select, name_email_config_frame))
     start_button.grid(row=4, column=0)
 
@@ -372,17 +376,64 @@ def app() -> int:
     return 0
 
 
-def process(document_dir_select: FolderSelect, document_config_frame: DocumentConfigFrame,
+def process(email_config: EmailConfig, document_dir_select: FolderSelect, document_config_frame: DocumentConfigFrame,
             name_email_file_select: FileSelect, name_email_config_frame: NameEmailConfigFrame):
 
-    DocumentEmailName.from_data_paths(
-        document_folder_path=document_dir_select.folder_path,
-        excel_file_path=name_email_file_select.file_path,
-        first_name_column=name_email_config_frame.first_name_column,
-        email_column=name_email_config_frame.email_column,
-        document_file_type=document_config_frame.document_file_types,
-        last_name_column=name_email_config_frame.last_name_column,
-        sheet_name=name_email_config_frame.sheet_name,
-        start_row_for_names=name_email_config_frame.start_row_for_names,
-        stop_row_for_names=name_email_config_frame.stop_row_for_names,
-    )
+    pop_up = Toplevel()
+    loading_screen = Label(pop_up, text="Processing Names, Email addresses and Documents.")
+    loading_screen.pack()
+
+    def get_document_email_name():
+        document_email_name = DocumentEmailName.from_data_paths(
+            document_folder_path=document_dir_select.folder_path,
+            excel_file_path=name_email_file_select.file_path,
+            first_name_column=name_email_config_frame.first_name_column,
+            email_column=name_email_config_frame.email_column,
+            document_file_type=document_config_frame.document_file_types,
+            last_name_column=name_email_config_frame.last_name_column,
+            sheet_name=name_email_config_frame.sheet_name,
+            start_row_for_names=name_email_config_frame.start_row_for_names,
+            stop_row_for_names=name_email_config_frame.stop_row_for_names,
+        )
+
+        pop_up.destroy()
+
+        confirm = Toplevel()
+        sending_info = Label(confirm, text=document_email_name.info(), justify=LEFT)
+        sending_info.grid(row=0, columnspan=2, sticky=W + E)
+
+        def send() -> None:
+            confirm.destroy()
+            pop_up = Toplevel()
+            loading_screen = Label(pop_up, text="Sending all emails...")
+            loading_screen.pack()
+
+            def send_() -> None:
+                documents_not_sent = send_emails(document_email_name=document_email_name, email_config=email_config)
+                pop_up.destroy()
+
+                email_info = Toplevel()
+                label_text: str
+                if documents_not_sent:
+                    documents_names = toolz.keymap(os.path.basename, documents_not_sent)
+
+                    label_text = "The following documents could not be sent "\
+                        "(maybe wrong receiver email or sender email config.):\n"
+                    label_text += "\n".join(f"- {d:<50} -> {e:<50} ({n})" for (d, (n, e)) in documents_names.items())
+                else:
+                    label_text = "Sending was successful!"
+                sending_info = Label(email_info, text=label_text, anchor="e", justify=LEFT)
+                sending_info.grid(row=0)
+                okay_button = ttk.Button(email_info, text="Ok", command=email_info.destroy)
+                okay_button.grid(row=1)
+
+            pop_up.after(200, send_)
+
+        button_frame = Frame(confirm)
+        button_frame.grid(row=1)
+        confirm_button = ttk.Button(button_frame, text="Send Emails", command=send)
+        confirm_button.grid(row=0, column=0)
+        cancel_button = ttk.Button(button_frame, text="Cancel", command=confirm.destroy)
+        cancel_button.grid(row=0, column=1)
+
+    pop_up.after(200, get_document_email_name)
