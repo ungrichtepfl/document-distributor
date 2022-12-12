@@ -8,4 +8,4 @@ build-linux:
 
 .PHONY: build-win
 build-win:
-	pyinstaller $(icon_file) -n $(app_name) -w $(entry_point)
+	pyinstaller --icon $(icon_file) -n $(app_name) -w $(entry_point)
