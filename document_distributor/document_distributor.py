@@ -173,7 +173,8 @@ class DocumentEmailName:
 
         if document_to_unambiguous_name_and_email:
             info_strings.append("The following documents will be send:")
-            s = (f"- {os.path.basename(d):<50} -> {n[0]}" for (d, n) in document_to_unambiguous_name_and_email.items())
+            s = (f"- {os.path.basename(d):<50} -> {n[0]} ({n[1]})"
+                 for (d, n) in document_to_unambiguous_name_and_email.items())
             info_strings.extend(s)
         else:
             info_strings.append("Nothing could be sent!")
@@ -210,7 +211,7 @@ def name_to_mail_from_excel(excel_file_path: FilePath,
                             start: int = 1,
                             stop: Optional[int] = None) -> Mapping[str, EmailAddress]:
     workbook: Workbook = openpyxl.load_workbook(excel_file_path)
-    sheet: Worksheet = workbook[sheet_name]
+    sheet: Worksheet = workbook[sheet_name] if sheet_name is not None else workbook[workbook.sheetnames[0]]
     stop = stop if stop is not None else sheet.max_row
     first_name_column_idx = _col2num(first_name_column)
     last_name_column_idx = _col2num(last_name_column) if last_name_column is not None else None
