@@ -1,20 +1,29 @@
 import os
+from tkinter import BOTH
+from tkinter import BOTTOM
 from tkinter import Checkbutton
+from tkinter import DISABLED
 from tkinter import E
 from tkinter import END
 from tkinter import Entry
 from tkinter import filedialog as fd
 from tkinter import Frame
+from tkinter import HORIZONTAL
 from tkinter import IntVar
 from tkinter import Label
 from tkinter import LEFT
 from tkinter import N
+from tkinter import NONE
+from tkinter import RIGHT
 from tkinter import S
 from tkinter import StringVar
 from tkinter import Text
 from tkinter import Toplevel
 from tkinter import ttk
+from tkinter import VERTICAL
 from tkinter import W
+from tkinter import X
+from tkinter import Y
 import tkinter as tk
 from typing import Optional
 
@@ -96,15 +105,17 @@ class NameEmailConfigFrame(Frame):
         self._email_column.set(val)
 
     @property
-    def last_name_column(self) -> str:
-        return self._last_name_column.get().upper().strip(" ")
+    def last_name_column(self) -> Optional[str]:
+        res = self._last_name_column.get().upper().strip(" ")
+        return res if res else None
 
     def set_last_name_column(self, val: Optional[str]):
         self._last_name_column.set(val if val is not None else "")
 
     @property
-    def sheet_name(self) -> str:
-        return self._sheet_name.get().strip(" ")
+    def sheet_name(self) -> Optional[str]:
+        res = self._sheet_name.get().strip(" ")
+        return res if res else None
 
     def set_sheet_name(self, val: Optional[str]):
         self._sheet_name.set(val if val is not None else "")
@@ -210,13 +221,25 @@ class EmailMessageConfigFrame(Frame):
         super().__init__(master=parent, **kwargs)
         self._email_subject = StringVar()
         self.label_email_subject = Label(self, text="Email Subject*")
-        self.label_email_subject.grid(row=0, column=0, sticky=W)
+        self.label_email_subject.grid(row=0, sticky=W)
         self.entry_email_subject = Entry(self, textvariable=self._email_subject)
-        self.entry_email_subject.grid(row=1, column=0, sticky=W)
+        self.entry_email_subject.grid(row=1, column=0, sticky=W + E)
         self.label_email_message = Label(self, text="Email Text*")
         self.label_email_message.grid(row=2, column=0, sticky=W)
-        self.text_email_message = Text(self)
-        self.text_email_message.grid(row=3, column=0, sticky=W)
+        self.message_frame = Frame(self)
+        self.message_frame.grid(row=3, column=0, sticky=W + E)
+
+        vscrollbar = ttk.Scrollbar(self.message_frame, orient=VERTICAL)
+        hscrollbar = ttk.Scrollbar(self.message_frame, orient=HORIZONTAL)
+        self.text_email_message = Text(self.message_frame,
+                                       wrap=NONE,
+                                       yscrollcommand=vscrollbar.set,
+                                       xscrollcommand=hscrollbar.set)
+        vscrollbar.config(command=self.text_email_message.yview)
+        hscrollbar.config(command=self.text_email_message.xview)
+        vscrollbar.pack(side=RIGHT, fill=Y)
+        hscrollbar.pack(side=BOTTOM, fill=X)
+        self.text_email_message.pack(side=LEFT, fill=BOTH, expand=True)
 
     @property
     def email_subject(self) -> str:
@@ -243,15 +266,18 @@ class FolderSelect(Frame):
         self.label_name.grid(row=0, column=0, sticky=W)
         self.entry_path = Entry(self, textvariable=self._folder_path)
         self.entry_path.grid(row=1, column=0, sticky=W)
+        self.entry_path.xview_moveto(1)
         self.button_find = ttk.Button(self, text="Browse Folder", command=self.set_folder_path_button)
         self.button_find.grid(row=1, column=1, sticky=W)
 
     def set_folder_path_button(self):
         folder_selected = fd.askdirectory()
         self._folder_path.set(folder_selected)
+        self.entry_path.xview_moveto(1)
 
     def set_folder_path(self, val: str):
         self._folder_path.set(val)
+        self.entry_path.xview_moveto(1)
 
     @property
     def folder_path(self):
@@ -268,15 +294,18 @@ class FileSelect(Frame):
         self.label_name.grid(row=0, column=0, sticky=W)
         self.entry_path = Entry(self, textvariable=self._file_path)
         self.entry_path.grid(row=1, column=0, sticky=W)
+        self.entry_path.xview_moveto(1)
         self.button_find = ttk.Button(self, text="Browse File", command=self.set_file_path_button)
         self.button_find.grid(row=1, column=1, sticky=W)
 
     def set_file_path_button(self):
         file_selected = fd.askopenfilename(filetypes=self.filetypes)
         self._file_path.set(file_selected)
+        self.entry_path.xview_moveto(1)
 
     def set_file_path(self, val: str):
         self._file_path.set(val)
+        self.entry_path.xview_moveto(1)
 
     @property
     def file_path(self):
@@ -331,8 +360,18 @@ def process(email_config: EmailConfig, document_dir_select: FolderSelect, docume
         pop_up.destroy()
 
         confirm = Toplevel()
-        sending_info = Label(confirm, text=document_email_name.info(), justify=LEFT)
-        sending_info.grid(row=0, columnspan=2, sticky=W + E)
+        confirm_frame = Frame(confirm)
+        confirm_frame.grid(column=0, rowspan=4, sticky=N + S + E + W)
+        vscrollbar = ttk.Scrollbar(confirm_frame, orient=VERTICAL)
+        hscrollbar = ttk.Scrollbar(confirm_frame, orient=HORIZONTAL)
+        confirm_text = Text(confirm_frame, wrap=NONE, yscrollcommand=vscrollbar.set, xscrollcommand=hscrollbar.set)
+        vscrollbar.config(command=confirm_text.yview)
+        hscrollbar.config(command=confirm_text.xview)
+        vscrollbar.pack(side=RIGHT, fill=Y)
+        hscrollbar.pack(side=BOTTOM, fill=X)
+        confirm_text.pack(side=LEFT, fill=BOTH, expand=True)
+        confirm_text.insert(END, document_email_name.info())
+        confirm_text.configure(state=DISABLED)
 
         def send() -> None:
             confirm.destroy()
@@ -345,24 +384,39 @@ def process(email_config: EmailConfig, document_dir_select: FolderSelect, docume
                 pop_up.destroy()
 
                 email_info = Toplevel()
-                label_text: str
+                email_info_str: str
                 if documents_not_sent:
                     documents_names = toolz.keymap(os.path.basename, documents_not_sent)
 
-                    label_text = "The following documents could not be sent "\
+                    email_info_str = "The following documents could not be sent "\
                         "(maybe wrong receiver email or sender email config.):\n"
-                    label_text += "\n".join(f"- {d:<50} -> {e:<50} ({n})" for (d, (n, e)) in documents_names.items())
+                    email_info_str += "\n".join(
+                        f"- {d:<50} -> {e:<50} ({n})" for (d, (n, e)) in documents_names.items())
                 else:
-                    label_text = "Sending was successful!"
-                sending_info = Label(email_info, text=label_text, anchor="e", justify=LEFT)
-                sending_info.grid(row=0)
+                    email_info_str = "Sending was successful!"
+                email_info_frame = Frame(email_info)
+                email_info_frame.grid(column=0, rowspan=4, sticky=N + S + E + W)
+                vscrollbar = ttk.Scrollbar(email_info_frame, orient=VERTICAL)
+                hscrollbar = ttk.Scrollbar(email_info_frame, orient=HORIZONTAL)
+                email_info_text = Text(email_info_frame,
+                                       wrap=NONE,
+                                       yscrollcommand=vscrollbar.set,
+                                       xscrollcommand=hscrollbar.set)
+                vscrollbar.config(command=email_info_text.yview)
+                hscrollbar.config(command=email_info_text.xview)
+                vscrollbar.pack(side=RIGHT, fill=Y)
+                hscrollbar.pack(side=BOTTOM, fill=X)
+                email_info_text.pack(side=LEFT, fill=BOTH, expand=True)
+                email_info_text.insert(END, email_info_str)
+                email_info_text.configure(state=DISABLED)
+
                 okay_button = ttk.Button(email_info, text="Ok", command=email_info.destroy)
-                okay_button.grid(row=1)
+                okay_button.grid(row=4)
 
             pop_up.after(200, send_)
 
         button_frame = Frame(confirm)
-        button_frame.grid(row=1)
+        button_frame.grid(row=4)
         confirm_button = ttk.Button(button_frame, text="Send Emails", command=send)
         confirm_button.grid(row=0, column=0)
         cancel_button = ttk.Button(button_frame, text="Cancel", command=confirm.destroy)
@@ -382,15 +436,15 @@ def main() -> int:
     document_dir_select.grid(row=0, sticky=W)
     document_dir_select.set_folder_path(main_config.document_folder_path)
 
-    document_config_frame = DocumentConfigFrame(root)
-    document_config_frame.grid(row=1, sticky=W)
-    document_config_frame.set_document_file_types(main_config.document_file_type)
-
     name_email_file_select = FileSelect(root,
                                         "Name and Email File*",
                                         filetypes=(*SUPPORTED_FILE_TYPES, ("All files", "*.*")))
-    name_email_file_select.grid(row=2, sticky=W)
+    name_email_file_select.grid(row=1, sticky=W)
     name_email_file_select.set_file_path(main_config.excel_file_path)
+
+    document_config_frame = DocumentConfigFrame(root)
+    document_config_frame.grid(row=2, sticky=W)
+    document_config_frame.set_document_file_types(main_config.document_file_type)
 
     name_email_config_frame = NameEmailConfigFrame(root)
     name_email_config_frame.grid(row=3, sticky=W)
@@ -402,7 +456,7 @@ def main() -> int:
     name_email_config_frame.set_stop_row_for_names(main_config.stop_row_for_names)
 
     email_message_config_frame = EmailMessageConfigFrame(root)
-    email_message_config_frame.grid(row=0, column=1, rowspan=4, sticky=N + S)
+    email_message_config_frame.grid(row=0, column=1, rowspan=4, sticky=S)
     email_message_config_frame.set_email_message(email_config.message)
     email_message_config_frame.set_email_subject(email_config.subject)
 
