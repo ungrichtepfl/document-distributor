@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "DDist"
-#define MyAppVersion "0.0.1"
+#define MyAppVersion "0.0.3"
 #define MyAppPublisher "Christoph Ungricht"
 #define MyAppURL "https://github.com/ungrichtepfl/document-distributor"
 #define MyAppExeName "ddist.exe"
@@ -23,7 +23,7 @@ DisableProgramGroupPage=yes
 LicenseFile=C:\Users\chris\Programming\document-distributor\LICENSE
 ; Remove the following line to run in administrative install mode (install for all users.)
 PrivilegesRequired=lowest
-OutputBaseFilename=ddist-installer
+OutputBaseFilename=ddist-{#MyAppVersion}-installer
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern

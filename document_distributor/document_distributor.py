@@ -210,6 +210,8 @@ def name_to_mail_from_excel(excel_file_path: FilePath,
                             sheet_name: Optional[str] = None,
                             start: int = 1,
                             stop: Optional[int] = None) -> Mapping[str, EmailAddress]:
+
+    excel_file_path = os.path.abspath(os.path.normpath(excel_file_path))
     workbook: Workbook = openpyxl.load_workbook(excel_file_path)
     sheet: Worksheet = workbook[sheet_name] if sheet_name is not None else workbook[workbook.sheetnames[0]]
     stop = stop if stop is not None else sheet.max_row
@@ -218,13 +220,17 @@ def name_to_mail_from_excel(excel_file_path: FilePath,
     email_column_idx = _col2num(email_column)
     names = {}
     for row in sheet.iter_rows(min_row=start, max_row=stop):
-        first_name: str = row[first_name_column_idx - 1].value
+        if all(v.value is None for v in row):
+            continue
+        first_name_raw: Optional[str] = row[first_name_column_idx - 1].value
+        first_name = first_name_raw if first_name_raw is not None else ""
         last_name: Optional[str] = row[last_name_column_idx - 1].value if last_name_column_idx is not None else None
 
         name = first_name.strip(" ")
         if last_name is not None:
             name = f"{name} {last_name.strip(' ')}"
-        email = row[email_column_idx - 1].value.strip(" ")
+        email_raw: Optional[str] = row[email_column_idx - 1].value
+        email = email_raw.strip(" ") if email_raw is not None else ""
         names[name] = email
 
     return names
