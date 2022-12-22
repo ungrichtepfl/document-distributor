@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from email import encoders
+from email.mime.application import MIMEApplication
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -263,10 +264,8 @@ def send_email(
     attachment: str
     for attachment in attachment_file_paths:
         if attachment:  # Not empty string
-            part = MIMEBase("application", "octet-stream")
             with open(attachment, "rb") as bytestream:
-                part.set_payload(bytestream.read())
-            encoders.encode_base64(part)
+                part = MIMEApplication(bytestream.read(), Name=os.path.basename(attachment))
             part.add_header("Content-Disposition", f"attachment; filename= {os.path.basename(attachment)}")
             message_sent.attach(part)
 

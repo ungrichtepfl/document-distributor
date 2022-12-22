@@ -1,3 +1,4 @@
+import email
 import os
 from tkinter import BOTH
 from tkinter import BOTTOM
@@ -338,13 +339,17 @@ def modify_email_config(email_config: EmailConfig):
 
 
 def process(email_config: EmailConfig, document_dir_select: FolderSelect, document_config_frame: DocumentConfigFrame,
-            name_email_file_select: FileSelect, name_email_config_frame: NameEmailConfigFrame):
+            name_email_file_select: FileSelect, name_email_config_frame: NameEmailConfigFrame,
+            email_message_config_frame: EmailMessageConfigFrame):
 
     pop_up = Toplevel()
     loading_screen = Label(pop_up, text="Processing Names, Email addresses and Documents.")
     loading_screen.pack()
 
     def get_document_email_name():
+        email_config.message = email_message_config_frame.email_message
+        email_config.subject = email_message_config_frame.email_subject
+
         document_email_name = DocumentEmailName.from_data_paths(
             document_folder_path=document_dir_select.folder_path,
             excel_file_path=name_email_file_select.file_path,
@@ -460,10 +465,11 @@ def main() -> int:
     email_message_config_frame.set_email_message(email_config.message)
     email_message_config_frame.set_email_subject(email_config.subject)
 
-    start_button = ttk.Button(root,
-                              text="Start",
-                              command=lambda: process(email_config, document_dir_select, document_config_frame,
-                                                      name_email_file_select, name_email_config_frame))
+    start_button = ttk.Button(
+        root,
+        text="Start",
+        command=lambda: process(email_config, document_dir_select, document_config_frame, name_email_file_select,
+                                name_email_config_frame, email_message_config_frame))
     start_button.grid(row=4, column=0)
 
     email_config_button = ttk.Button(root, text="Email Config", command=lambda: modify_email_config(email_config))
