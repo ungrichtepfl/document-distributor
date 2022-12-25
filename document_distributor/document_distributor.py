@@ -265,8 +265,8 @@ def send_email(
     for attachment in attachment_file_paths:
         if attachment:  # Not empty string
             with open(attachment, "rb") as bytestream:
-                part = MIMEApplication(bytestream.read(), Name=os.path.basename(attachment))
-            part.add_header("Content-Disposition", f"attachment; filename= {os.path.basename(attachment)}")
+                part = MIMEApplication(bytestream.read())
+            part.add_header("Content-Disposition", f'attachment; filename="{os.path.basename(attachment)}"')
             message_sent.attach(part)
 
     with smtplib.SMTP(smtp_server, port) as client:
