@@ -173,7 +173,7 @@ class DocumentEmailName:
         info_strings.append("")
 
         if document_to_unambiguous_name_and_email:
-            info_strings.append("The following documents will be send:")
+            info_strings.append("The following documents will be sent:")
             s = (f"- {os.path.basename(d):<50} -> {n[0]} ({n[1]})"
                  for (d, n) in document_to_unambiguous_name_and_email.items())
             info_strings.extend(s)
