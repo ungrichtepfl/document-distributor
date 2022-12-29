@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from email.mime.application import MIMEApplication
+from email import encoders
+from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import json
@@ -262,8 +263,10 @@ def send_email(
     attachment: str
     for attachment in attachment_file_paths:
         if attachment:  # Not empty string
+            part = _get_mime_base_from_file(attachment)
             with open(attachment, "rb") as bytestream:
-                part = MIMEApplication(bytestream.read())
+                part.set_payload(bytestream.read())
+            encoders.encode_base64(part)
             part.add_header("Content-Disposition", f'attachment; filename="{os.path.basename(attachment)}"')
             message_sent.attach(part)
 
@@ -277,6 +280,16 @@ def send_email(
             client.login(username, password)
         client.ehlo()
         client.sendmail(sender_email, receiver_emails, message_sent.as_string())
+
+
+def _get_mime_base_from_file(file_path: str) -> MIMEBase:
+    file_path_lower = file_path.lower()
+    file_name = os.path.basename(file_path)
+    application_type = "octet-stream"
+    if file_path_lower.endswith(".pdf"):
+        application_type = "pdf"
+
+    return MIMEBase("application", application_type, name=file_name)
 
 
 def list_document_file_paths(document_folder_path: FilePath,
