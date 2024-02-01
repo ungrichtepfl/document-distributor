@@ -270,7 +270,14 @@ def send_email(
             part.add_header("Content-Disposition", f'attachment; filename="{os.path.basename(attachment)}"')
             message_sent.attach(part)
 
-    with smtplib.SMTP(smtp_server, port) as client:
+    if port == smtplib.SMTP_SSL_PORT:
+        # FIXME: Let user decide when to use SSL, not via port
+        smtp = smtplib.SMTP_SSL
+        use_starttls = False
+    else:
+        smtp = smtplib.SMTP
+
+    with smtp(smtp_server, port, timeout=5) as client:
         if use_starttls:
             client.ehlo()
             client.starttls(context=starttls_context)
