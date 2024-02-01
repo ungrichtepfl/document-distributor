@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "DDist"
-#define MyAppVersion "0.0.6"
+#define MyAppVersion "0.0.7"
 #define MyAppPublisher "Christoph Ungricht"
 #define MyAppURL "https://github.com/ungrichtepfl/document-distributor"
 #define MyAppExeName "ddist.exe"
