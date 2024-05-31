@@ -1,4 +1,5 @@
 ddist-conf.json
+_version.py
 Output/
 .env
 # Byte-compiled / optimized / DLL files

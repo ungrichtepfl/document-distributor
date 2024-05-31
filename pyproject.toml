@@ -1,15 +1,18 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "document_distributor"
-version = "0.0.7"
 dependencies = ["openpyxl", "toolz", "dataclasses-json"]
+dynamic = ["version"]
 
 [project.scripts]
 ddist = "document_distributor.cli:main"
 ddist-gui = "document_distributor.gui:main"
+
+[tool.setuptools_scm]
+version_file = "document_distributor/_version.py"
 
 [tool.setuptools.packages]
 find = {}

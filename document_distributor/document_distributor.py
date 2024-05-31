@@ -24,7 +24,7 @@ from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 import toolz
 
-from document_distributor.__version__ import __version__
+from document_distributor._version import __version__
 
 _log = logging.getLogger(__name__)
 
