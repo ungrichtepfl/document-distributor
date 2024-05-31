@@ -1,0 +1,64 @@
+Return-Path: <info@luchsundhase.ch>
+Delivered-To: 77278122625734980790@38338634321263742408
+Received: from dovecot-director-002.int.p.bluenet.ch ([195.186.227.154])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits))
+	by dovecot-backend-036.int.p.bluenet.ch with LMTPS
+	id CKKjL0ayWWaa+RgAdIsfzg:P1:P1
+	(envelope-from <info@luchsundhase.ch>)
+	for <77278122625734980790@38338634321263742408>; Fri, 31 May 2024 11:19:34 +0000
+Received: from dovecot-proxy-020.int.p.bluenet.ch ([195.186.227.154])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits))
+	by dovecot-director-002.int.p.bluenet.ch with LMTPS
+	id CKKjL0ayWWaa+RgAdIsfzg:P1
+	(envelope-from <info@luchsundhase.ch>)
+	for <77278122625734980790@38338634321263742408>; Fri, 31 May 2024 11:19:34 +0000
+Received: from vimdzmsp-mxin10.bluewin.ch ([195.186.227.154])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	by dovecot-proxy-020.int.p.bluenet.ch with LMTPS
+	id CKKjL0ayWWaa+RgAdIsfzg
+	(envelope-from <info@luchsundhase.ch>)
+	for <christoph.ungricht@bluewin.ch>; Fri, 31 May 2024 11:19:34 +0000
+Received: from mxout014.mail.hostpoint.ch ([217.26.49.174])
+	by vimdzmsp-mxin10.bluewin.ch Swisscom AG with ESMTP
+	id D0IIsd6q1IIUvD0IIsYg6S; Fri, 31 May 2024 13:19:34 +0200
+X-Bluewin-Bp: 32768
+X-Bluewin-Spam: true
+X-Bluewin-Spam-Analysis: v=2.4 cv=Y+pbsQeN c=1 sm=1 tr=0 ts=6659b246
+ cx=a_idp_d:c_swc p=QhnmdGnfZl10ibMM-eB4:22 a=gAK0B/1izvWP137JwamruQ==:117
+ a=xqWC_Br6kY4A:10 a=HpEJnUlJZJkA:10 a=DBwwDor5xuMA:10 a=TpHVaj0NuXgA:10
+ a=rDXPeed0QkD2NqLnrKUA:9 a=CjuIK1q_8ugA:10 a=3v3T_t-6RV0oJCVDGYuw:22
+ a=HVmNNDEdEXC5qBDX4ntS:22 a=rpXtYnK6aTl2ddkKRDiu:22 a=p-dnK0njbqwfn1k4-x12:22
+ a=qxG4R2aHmpcNjmqRPJKJ:22 a=NWVoK91CQySWRX1oVYDe:22
+X-Bluewin-Spam-Score: 100.00
+X-FXIT-IP: IPv4[217.26.49.174] Epoch[1717154374]
+X-Originating-IP: 217.26.49.174
+Received: from [10.0.2.45] (helo=asmtp012.mail.hostpoint.ch)
+	by mxout014.mail.hostpoint.ch with esmtps  (TLS1.3) tls TLS_AES_256_GCM_SHA384
+	(Exim 4.97.1 (FreeBSD))
+	(envelope-from <info@luchsundhase.ch>)
+	id 1sD0II-00000000PfP-1yBr
+	for christoph.ungricht@bluewin.ch;
+	Fri, 31 May 2024 13:19:34 +0200
+Received: from [2a04:ee41:4:c124:5555:842:6c9a:31b0] (helo=[127.0.1.1])
+	by asmtp012.mail.hostpoint.ch with esmtpa (Exim 4.97.1 (FreeBSD))
+	(envelope-from <info@luchsundhase.ch>)
+	id 1sD0II-00000000N3z-1M30
+	for christoph.ungricht@bluewin.ch;
+	Fri, 31 May 2024 13:19:34 +0200
+X-Authenticated-Sender-Id: info@luchsundhase.ch
+Content-Type: multipart/mixed; boundary="===============2424352109104035734=="
+MIME-Version: 1.0
+Subject: Test subject
+From: info@luchsundhase.ch
+To: christoph.ungricht@bluewin.ch
+X-Vs-State: 0
+X-CMAE-Envelope: MS4xfOTrMkPiRLMIAyTjNYgwYU0cDO6PQ7BZLP35JJDRoo1mGuD50UC+C7uT8ouY3HTxPsfNiF5LmlJPyIozXt/B+Am+Ka0wRYKyi03ulWoJj+MYEedzsmld
+ 14nrzhww7nbkoBhLI/0Tfu8cCIGmwKJDlgnBUib56iHmH+6Al4e7v0fDljLAJ/cRUFSEMLkC2uWlx3+XSVKwWXWlC6KT1MirftLRs0RbB4UtCK7rNYBQvcsn
+
+--===============2424352109104035734==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+
+Test message
+--===============2424352109104035734==--

@@ -1,4 +1,8 @@
+import os
+
 import pytest
+
+FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
 @pytest.fixture()
@@ -25,4 +29,7 @@ def receiver_emails():
 
 @pytest.fixture()
 def attachments():
-    return []
+    return [
+        os.path.join(FILE_PATH, "test_data", "test_documents", d)
+        for d in os.listdir(os.path.join(FILE_PATH, "test_data", "test_documents"))
+    ]
