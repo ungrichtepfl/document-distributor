@@ -388,14 +388,23 @@ def process(email_config: EmailConfig, document_dir_select: FolderSelect, docume
             sending_email_text.grid(row=0, **PADDING)
             sending_email_text.insert(END, "Sent emails:\n")
             sending_email_text.configure(state=DISABLED)
+
+            def save_text() -> None:
+                file_path = fd.asksaveasfilename(defaultextension=".txt", filetypes=(("Text files", "*.txt"),))
+                if file_path:
+                    with open(file_path, "w", encoding="utf-8") as file:
+                        file.write(sending_email_text.get(1.0, END))
+
+            save_button = CTkButton(sending_email_frame, text="Save", command=save_text)
+            save_button.grid(row=1, **PADDING)
             document_emails_to_send = document_email_name.document_to_unambiguous_name_and_email()
             max_progress = len(document_emails_to_send)
-            progressbar = CTkProgressBar(sending_email_frame)
+            progressbar = CTkProgressBar(sending_email_frame, width=600, height=10)
             progressbar.set(0)
-            progressbar.grid(row=1, **PADDING)
+            progressbar.grid(row=2, **PADDING)
             cancel_event = threading.Event()
             cancel_button = CTkButton(sending_email_frame, text="Cancel", command=cancel_event.set, fg_color="dark red")
-            cancel_button.grid(row=2, **PADDING)
+            cancel_button.grid(row=3, column=0, **PADDING)
             document_name_email_sent = []
             failed_send_email = threading.Event()
 
