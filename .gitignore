@@ -6,6 +6,7 @@ Output/
 __pycache__/
 *.py[cod]
 *$py.class
+.~lock.*.xlsx#
 
 # C extensions
 *.so
