@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import email
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
@@ -15,7 +16,7 @@ import smtplib
 import ssl
 from ssl import SSLContext
 import string
-from typing import Iterable, Mapping, Optional, Sequence
+from typing import Iterable, Mapping, Optional, Sequence, Type
 
 from dataclasses_json import dataclass_json
 import openpyxl
@@ -108,12 +109,12 @@ def send_emails(document_email_name: DocumentEmailName,
                 email_config: EmailConfig) -> Mapping[FilePath, tuple[str, EmailAddress]]:
     document_to_email_name_not_send = {}
     config = email_config.__dict__
-    for (document_path, (name, email)) in document_email_name.document_to_unambiguous_name_and_email().items():
+    for (document_path, (name, email_address)) in document_email_name.document_to_unambiguous_name_and_email().items():
         try:
-            send_email(receiver_emails=[email], attachment_file_paths=[document_path], **config)
+            send_email(receiver_emails=[email_address], attachment_file_paths=[document_path], **config)
         except Exception as e:  # pylint: disable=broad-except, can raise a different of exceptions (user input)
             _log.error(e, exc_info=True)
-            document_to_email_name_not_send[document_path] = (name, email)
+            document_to_email_name_not_send[document_path] = (name, email_address)
     return document_to_email_name_not_send
 
 
@@ -191,8 +192,8 @@ class DocumentEmailName:
         return "\n".join(info_strings)
 
 
-def _valid_email(email: str) -> bool:
-    return re.fullmatch(_EMAIL_REGEX, email) is not None
+def _valid_email(email_address: str) -> bool:
+    return re.fullmatch(_EMAIL_REGEX, email_address) is not None
 
 
 def _col2num(col: str) -> int:
@@ -229,9 +230,9 @@ def name_to_mail_from_excel(excel_file_path: FilePath,
         name = first_name.strip(" ")
         if last_name is not None:
             name = f"{name} {last_name.strip(' ')}"
-        email_raw: Optional[str] = row[email_column_idx - 1].value
-        email = email_raw.strip(" ") if email_raw is not None else ""
-        names[name] = email
+        email_address_raw: Optional[str] = row[email_column_idx - 1].value
+        email_address = email_address_raw.strip(" ") if email_address_raw is not None else ""
+        names[name] = email_address
 
     return names
 
@@ -254,9 +255,10 @@ def send_email(
         attachment_file_paths = []
 
     message_sent = MIMEMultipart()
-    message_sent["Subject"] = subject
+    message_sent["Date"] = email.utils.formatdate(localtime=True)
     message_sent["From"] = sender_email
     message_sent["To"] = ", ".join(receiver_emails)
+    message_sent["Subject"] = subject
 
     message_sent.attach(MIMEText(message, "plain"))
 
@@ -269,7 +271,7 @@ def send_email(
             encoders.encode_base64(part)
             part.add_header("Content-Disposition", f'attachment; filename="{os.path.basename(attachment)}"')
             message_sent.attach(part)
-
+    smtp: Type[smtplib.SMTP] | Type[smtplib.SMTP_SSL]
     if port == smtplib.SMTP_SSL_PORT:
         # FIXME: Let user decide when to use SSL, not via port
         smtp = smtplib.SMTP_SSL
@@ -338,7 +340,7 @@ def map_name_and_email_to_document(document_file_paths: Sequence[str],
                                    name_to_email: Mapping[str, str]) -> Mapping[tuple[str, str], Sequence[str]]:
 
     name_to_email_and_document = {}
-    for (name, email) in name_to_email.items():
+    for (name, email_address) in name_to_email.items():
         matching_documents = filter(lambda b: _is_name_in_document(name, b), document_file_paths)
-        name_to_email_and_document[(name, email)] = tuple(matching_documents)
+        name_to_email_and_document[(name, email_address)] = tuple(matching_documents)
     return name_to_email_and_document
