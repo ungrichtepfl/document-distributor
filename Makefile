@@ -8,4 +8,4 @@ build-linux:
 
 .PHONY: build-win
 build-win:
-	pyinstaller --icon document_distributor.ico -n ddist -w document_distributor/gui.py
+	pyinstaller --icon $(icon_file) -n $(app_name) -w $(entry_point)

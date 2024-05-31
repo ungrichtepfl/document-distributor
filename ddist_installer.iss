@@ -2,7 +2,6 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "DDist"
-#define MyAppVersion "0.0.7"
 #define MyAppPublisher "Christoph Ungricht"
 #define MyAppURL "https://github.com/ungrichtepfl/document-distributor"
 #define MyAppExeName "ddist.exe"
@@ -43,7 +42,3 @@ Source: "C:\Users\chris\Programming\document-distributor\dist\ddist\*"; DestDir:
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
-
-[Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
-
