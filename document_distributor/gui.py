@@ -1,12 +1,15 @@
 import os
+import threading
 from typing import Optional
 
 from customtkinter import BOTH
 from customtkinter import CTkButton
 from customtkinter import CTkCheckBox
 from customtkinter import CTkEntry
+from customtkinter import CTkFont
 from customtkinter import CTkFrame
 from customtkinter import CTkLabel
+from customtkinter import CTkProgressBar
 from customtkinter import CTkTextbox
 from customtkinter import CTkToplevel
 from customtkinter import DISABLED
@@ -16,22 +19,24 @@ from customtkinter import filedialog as fd
 from customtkinter import IntVar
 from customtkinter import LEFT
 from customtkinter import N
+from customtkinter import NORMAL
 from customtkinter import S
 from customtkinter import StringVar
 from customtkinter import ThemeManager
 from customtkinter import W
 import customtkinter as ctk
-import toolz
 
 from document_distributor.document_distributor import DocumentEmailName
 from document_distributor.document_distributor import dump_config
+from document_distributor.document_distributor import EmailAddress
 from document_distributor.document_distributor import EmailConfig
+from document_distributor.document_distributor import FilePath
 from document_distributor.document_distributor import load_config
 from document_distributor.document_distributor import send_emails
 from document_distributor.document_distributor import SUPPORTED_FILE_TYPES
 
 ctk.set_appearance_mode("System")
-ctk.set_default_color_theme("blue")
+ctk.set_default_color_theme("dark-blue")
 FG_COLOR_ROOT = ThemeManager.theme["CTk"]["fg_color"]
 PADDING = {"padx": 7, "pady": 7}
 
@@ -228,7 +233,8 @@ class EmailMessageConfigFrame(CTkFrame):
         self.message_frame = CTkFrame(self)
         self.message_frame.grid(row=3, column=0, sticky=W + E)
 
-        self.text_email_message = CTkTextbox(self.message_frame, width=800, height=400)
+        font = CTkFont(size=14)
+        self.text_email_message = CTkTextbox(self.message_frame, width=800, height=400, font=font, wrap="none")
         self.text_email_message.pack(side=LEFT, fill=BOTH, expand=True)
 
     @property
@@ -362,7 +368,8 @@ def process(email_config: EmailConfig, document_dir_select: FolderSelect, docume
         confirm.resizable(width=False, height=False)
         confirm_frame = CTkFrame(confirm)
         confirm_frame.grid(column=0, rowspan=4, sticky=N + S + E + W, **PADDING)
-        confirm_text = CTkTextbox(confirm_frame, width=800, height=400)
+        font = CTkFont(family="Courier New", size=12)
+        confirm_text = CTkTextbox(confirm_frame, width=800, height=400, font=font, wrap="none")
         confirm_text.pack(side=LEFT, fill=BOTH, expand=True)
         confirm_text.insert(END, document_email_name.info())
         confirm_text.configure(state=DISABLED)
@@ -372,43 +379,74 @@ def process(email_config: EmailConfig, document_dir_select: FolderSelect, docume
             pop_up = CTkToplevel()
             pop_up.title("Sending emails")
             pop_up.resizable(width=False, height=False)
-            loading_screen = CTkLabel(pop_up, text="Sending all emails...")
-            loading_screen.pack()
 
-            def send_() -> None:
-                documents_not_sent = send_emails(document_email_name=document_email_name, email_config=email_config)
-                pop_up.destroy()
+            sending_email_frame = CTkFrame(pop_up, fg_color=FG_COLOR_ROOT)
+            sending_email_frame.grid(column=0, rowspan=4, sticky=N + S + E + W, **PADDING)
 
-                email_info = CTkToplevel()
-                email_info.title("Send status")
-                email_info.resizable(width=False, height=False)
-                email_info_str: str
-                if documents_not_sent:
-                    documents_names = toolz.keymap(os.path.basename, documents_not_sent)
+            font = CTkFont(family="Courier New", size=12)
+            sending_email_text = CTkTextbox(sending_email_frame, width=800, height=400, font=font, wrap="none")
+            sending_email_text.grid(row=0, **PADDING)
+            sending_email_text.insert(END, "Sent emails:\n")
+            sending_email_text.configure(state=DISABLED)
+            document_emails_to_send = document_email_name.document_to_unambiguous_name_and_email()
+            max_progress = len(document_emails_to_send)
+            progressbar = CTkProgressBar(sending_email_frame)
+            progressbar.set(0)
+            progressbar.grid(row=1, **PADDING)
+            cancel_event = threading.Event()
+            cancel_button = CTkButton(sending_email_frame, text="Cancel", command=cancel_event.set, fg_color="dark red")
+            cancel_button.grid(row=2, **PADDING)
+            document_name_email_sent = []
+            failed_send_email = threading.Event()
 
-                    email_info_str = "The following documents could not be sent "\
-                        "(maybe wrong receiver email or sender email config.):\n"
-                    email_info_str += "\n".join(
-                        f"- {d:<50} -> {e:<50} ({n})" for (d, (n, e)) in documents_names.items())
+            def on_send_email(sent_document_name_email: tuple[FilePath, tuple[str, EmailAddress]],
+                              error: Optional[str]) -> bool:
+                document_name, (name, email) = sent_document_name_email
+                document_name = os.path.basename(document_name)
+                sending_email_text.configure(state=NORMAL)
+                if not error:
+                    sending_email_text.insert(END, f"* {document_name:<40} -> {email} ({name})\n")
+                    document_name_email_sent.append((document_name, name, email))
                 else:
-                    email_info_str = "Sending was successful!"
-                email_info_frame = CTkFrame(email_info, fg_color=FG_COLOR_ROOT)
-                email_info_frame.grid(column=0, rowspan=4, sticky=N + S + E + W, **PADDING)
-                email_info_text = CTkTextbox(email_info_frame, width=800, height=400)
-                email_info_text.pack(side=LEFT, fill=BOTH, expand=True, **PADDING)
-                email_info_text.insert(END, email_info_str)
-                email_info_text.configure(state=DISABLED)
+                    failed_send_email.set()
+                    sending_email_text.insert(
+                        END, f"* Could not send {document_name:<40} -> {email} ({name})\n. Error: {error}\n")
+                sending_email_text.configure(state=DISABLED)
+                progressbar.set((progressbar.get() * max_progress + 1) / max_progress)
+                return False
 
-                okay_button = CTkButton(email_info, text="Ok", command=email_info.destroy)
-                okay_button.grid(row=4, **PADDING)
+            send_email_thread = threading.Thread(
+                target=send_emails,
+                args=(document_email_name, email_config, cancel_event, on_send_email),
+                daemon=True,
+            )
+            send_email_thread.start()
 
-            pop_up.after(200, send_)
+            def check_send_progress() -> None:
+                if send_email_thread.is_alive():
+                    pop_up.after(200, check_send_progress)
+                else:
+                    sending_email_text.configure(state=NORMAL)
+                    sending_email_text.insert(END, "Finished sending emails\n\n")
+                    if failed_send_email.is_set():
+                        sending_email_text.insert(END, "Failed to send emails to the following:\n")
+                        for document_name, (name, email) in (
+                            (k, v) for k, v in document_emails_to_send.items() if k not in document_name_email_sent):
+                            sending_email_text.insert(END,
+                                                      f"* {os.path.basename(document_name):<40} -> {email} ({name})\n")
+                    else:
+                        sending_email_text.insert(END, "All E-Mails sent successfully!\n")
+                    sending_email_text.configure(state=DISABLED)
+                    cancel_button.configure(text="Close", command=pop_up.destroy)
+                    progressbar.set(1)
+
+            pop_up.after(200, check_send_progress)
 
         button_frame = CTkFrame(confirm, fg_color=FG_COLOR_ROOT)
         button_frame.grid(row=4, **PADDING)
-        confirm_button = CTkButton(button_frame, text="Send Emails", command=send)
+        confirm_button = CTkButton(button_frame, text="Send Emails", command=send, fg_color="green")
         confirm_button.grid(row=0, column=0, **PADDING)
-        cancel_button = CTkButton(button_frame, text="Cancel", command=confirm.destroy)
+        cancel_button = CTkButton(button_frame, text="Cancel", command=confirm.destroy, fg_color="dark red")
         cancel_button.grid(row=0, column=1, **PADDING)
 
     pop_up.after(200, get_document_email_name)
@@ -452,6 +490,7 @@ def main() -> int:
     start_button = CTkButton(
         root,
         text="Start",
+        fg_color="green",
         command=lambda: process(email_config, document_dir_select, document_config_frame, name_email_file_select,
                                 name_email_config_frame, email_message_config_frame))
     start_button.grid(pady=10, row=4, column=0)
@@ -475,11 +514,12 @@ def main() -> int:
         dump_config(main_config, email_config)
         root.quit()
 
-    save_button = CTkButton(root, text="Quit", command=on_closing)
+    save_button = CTkButton(root, text="Quit", command=on_closing, fg_color="dark red")
 
     save_button.grid(row=5, column=0, columnspan=2, sticky=W + E, **PADDING)
 
     root.protocol("WM_DELETE_WINDOW", on_closing)
+
     root.mainloop()
 
     return 0

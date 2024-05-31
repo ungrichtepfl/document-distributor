@@ -16,7 +16,8 @@ import smtplib
 import ssl
 from ssl import SSLContext
 import string
-from typing import Iterable, Mapping, Optional, Sequence, Type
+from threading import Event
+from typing import Callable, Iterable, Mapping, Optional, Sequence, Type
 
 from dataclasses_json import dataclass_json
 import openpyxl
@@ -105,17 +106,21 @@ class EmailConfig:
     password: Optional[str] = None
 
 
-def send_emails(document_email_name: DocumentEmailName,
-                email_config: EmailConfig) -> Mapping[FilePath, tuple[str, EmailAddress]]:
-    document_to_email_name_not_send = {}
+def send_emails(document_email_name: DocumentEmailName, email_config: EmailConfig, cancellation_token: Event,
+                on_finish_send: Callable[[tuple[FilePath, tuple[str, EmailAddress]], Optional[str]], bool]) -> None:
+    document_to_name_email_to_send = document_email_name.document_to_unambiguous_name_and_email()
     config = email_config.__dict__
-    for (document_path, (name, email_address)) in document_email_name.document_to_unambiguous_name_and_email().items():
+    stop_sending = False
+    for (document_path, (name, email_address)) in document_to_name_email_to_send.items():
+        if cancellation_token.is_set() or stop_sending:
+            _log.info("Cancellation token is set. Stopping sending emails.")
+            return
         try:
             send_email(receiver_emails=[email_address], attachment_file_paths=[document_path], **config)
+            stop_sending = on_finish_send((document_path, (name, email_address)), None)
         except Exception as e:  # pylint: disable=broad-except, can raise a different of exceptions (user input)
             _log.error(e, exc_info=True)
-            document_to_email_name_not_send[document_path] = (name, email_address)
-    return document_to_email_name_not_send
+            stop_sending = on_finish_send((document_path, (name, email_address)), str(e))
 
 
 @dataclass
@@ -166,7 +171,7 @@ class DocumentEmailName:
         if document_to_name_and_email_not_sent:
             info_strings.append(
                 "The following documents could not be sent as they did not match with a name or have a invalid email:")
-            info_strings.extend(f"- {os.path.basename(d):<50}" for d in document_to_name_and_email_not_sent)
+            info_strings.extend(f"* {os.path.basename(d):<40}" for d in document_to_name_and_email_not_sent)
         else:
             info_strings.append("All documents could be matched with a name.")
 
@@ -174,7 +179,7 @@ class DocumentEmailName:
 
         if document_to_unambiguous_name_and_email:
             info_strings.append("The following documents will be sent:")
-            s = (f"- {os.path.basename(d):<50} -> {n[0]} ({n[1]})"
+            s = (f"* {os.path.basename(d):<40} -> {n[0]} ({n[1]})"
                  for (d, n) in document_to_unambiguous_name_and_email.items())
             info_strings.extend(s)
         else:
@@ -185,7 +190,7 @@ class DocumentEmailName:
 
         if names_getting_no_email:
             info_strings.append("The following people will not receive any document:")
-            info_strings.extend(f"- {n}" for n in names_getting_no_email)
+            info_strings.extend(f"* {n}" for n in names_getting_no_email)
         else:
             info_strings.append("Everybody will receive a document.")
 
