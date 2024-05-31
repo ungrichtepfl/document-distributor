@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "document_distributor"
-dependencies = ["openpyxl", "toolz", "dataclasses-json"]
+dependencies = ["openpyxl", "toolz", "dataclasses-json", "customtkinter"]
 dynamic = ["version"]
 
 [project.scripts]
