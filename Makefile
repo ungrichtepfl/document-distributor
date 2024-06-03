@@ -1,5 +1,5 @@
 icon_file=document_distributor.ico
-entry_point=document_distributor/gui.py
+entry_point=document_distributor/_gui.py
 app_name=ddist
 
 .PHONY: build-linux

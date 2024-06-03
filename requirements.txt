@@ -1,4 +1,0 @@
-openpyxl
-
-# dev 
-pylint

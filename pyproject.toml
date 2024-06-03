@@ -7,16 +7,6 @@ name = "document_distributor"
 dependencies = ["openpyxl", "toolz", "dataclasses-json", "customtkinter"]
 dynamic = ["version"]
 
-[project.scripts]
-ddist = "document_distributor.cli:main"
-ddist-gui = "document_distributor.gui:main"
-
-[tool.setuptools_scm]
-version_file = "document_distributor/_version.py"
-
-[tool.setuptools.packages]
-find = {}
-
 [project.optional-dependencies]
 dev = [
   # linters:
@@ -53,9 +43,21 @@ dev = [
   "smtpdfix",
   # updater:
   "pip-tools",
+]
+build = [
   # installer:
   "pyinstaller",
 ]
+
+[project.scripts]
+ddist = "document_distributor._gui:main"
+
+[tool.setuptools_scm]
+version_file = "document_distributor/_version.py"
+
+[tool.setuptools.packages]
+find = {}
+
 
 [tool.isort]
 profile = "google"

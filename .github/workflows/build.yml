@@ -20,9 +20,8 @@ jobs:
         python-version: "3.11"
         cache: "pip"
     - run: |
-        python -m pip -r requirements-windows.txt
-        python -m pip install .
-        python -m pip install pyinstaller
+        python -m pip -r requirements-build.txt
+        python -m pip install --no-deps .
 
     - name: Build executable
       run: make build-win
