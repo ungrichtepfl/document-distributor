@@ -15,24 +15,33 @@ jobs:
         fetch-depth: 0
         lfs: true
 
-    - uses: actions/setup-python@v4
+    - name: Install python
+      uses: actions/setup-python@v4
       with:
         python-version: "3.11"
         cache: "pip"
     - run: |
-        python -m pip -r requirements-build.txt
+        python -m pip install -r requirements-build-windows.txt
         python -m pip install --no-deps .
 
     - name: Build executable
       run: make build-win
 
-    - name: create innosetup installer
+    - name: Create innosetup installer
       uses: Minionguyjpro/Inno-Setup-Action@v1.2.4
       with:
         path: ddist_installer.iss
         options: /O+ /DMyAppVersion=${{ github.ref_name }}
-
-    - uses: actions/upload-artifact@v4
+    
+    - name: Upload installer
+      uses: actions/upload-artifact@v4
       with:
         name: ddist-${{ github.ref_name }}
-        path: build/**/*.exe
+        path: Output/*.exe
+
+    - name: Create release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          Output/ddist-${{ github.ref_name }}-windows-installer.exe
+          LICENSE

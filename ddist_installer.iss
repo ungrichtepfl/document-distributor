@@ -3,6 +3,7 @@
 
 #define MyAppName "DDist"
 #define MyAppPublisher "Christoph Ungricht"
+; #define MyAppVersion "v0.0.0" ; Define by ENV variable
 #define MyAppURL "https://github.com/ungrichtepfl/document-distributor"
 #define MyAppExeName "ddist.exe"
 
@@ -22,7 +23,7 @@ DisableProgramGroupPage=yes
 LicenseFile=LICENSE
 ; Remove the following line to run in administrative install mode (install for all users.)
 PrivilegesRequired=lowest
-OutputBaseFilename=ddist-{#MyAppVersion}-installer
+OutputBaseFilename=ddist-{#MyAppVersion}-windows-installer
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
