@@ -24,9 +24,8 @@ packaging==24.0
     # via
     #   customtkinter
     #   marshmallow
-    #   pyinstaller
     #   pyinstaller-hooks-contrib
-pyinstaller==6.7.0
+pyinstaller==5.13.2
     # via document_distributor (pyproject.toml)
 pyinstaller-hooks-contrib==2024.6
     # via pyinstaller

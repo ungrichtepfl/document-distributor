@@ -46,7 +46,7 @@ dev = [
 ]
 build = [
   # installer:
-  "pyinstaller",
+  "pyinstaller<6",
 ]
 
 [project.scripts]
