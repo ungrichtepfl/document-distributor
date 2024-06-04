@@ -1,5 +1,6 @@
 import os
 import threading
+from tkinter import messagebox
 from typing import Optional
 
 from customtkinter import BOTH
@@ -308,8 +309,9 @@ class FileSelect(CTkFrame):
         return self._file_path.get()
 
 
-def modify_email_config(email_config: EmailConfig):
-    pop_up = CTkToplevel()
+def modify_email_config(root: ctk.CTk, email_config: EmailConfig):
+    pop_up = CTkToplevel(root)
+    pop_up.transient(root)
     pop_up.title("Email Config")
     pop_up.resizable(width=False, height=False)
     email_server_config_frame = EmailServerConfigFrame(pop_up, fg_color=FG_COLOR_ROOT)
@@ -335,11 +337,12 @@ def modify_email_config(email_config: EmailConfig):
     ok_button.grid(row=1, **PADDING)
 
 
-def process(email_config: EmailConfig, document_dir_select: FolderSelect, document_config_frame: DocumentConfigFrame,
-            name_email_file_select: FileSelect, name_email_config_frame: NameEmailConfigFrame,
-            email_message_config_frame: EmailMessageConfigFrame):
+def process(root: ctk.CTk, email_config: EmailConfig, document_dir_select: FolderSelect,
+            document_config_frame: DocumentConfigFrame, name_email_file_select: FileSelect,
+            name_email_config_frame: NameEmailConfigFrame, email_message_config_frame: EmailMessageConfigFrame):
 
-    pop_up = CTkToplevel()
+    pop_up = CTkToplevel(root)
+    pop_up.transient(root)
     pop_up.title("Processing")
     pop_up.resizable(width=False, height=False)
     loading_screen = CTkLabel(pop_up, text="Processing Names, Email addresses and Documents.")
@@ -348,22 +351,26 @@ def process(email_config: EmailConfig, document_dir_select: FolderSelect, docume
     def get_document_email_name():
         email_config.message = email_message_config_frame.email_message
         email_config.subject = email_message_config_frame.email_subject
+        try:
+            document_email_name = DocumentEmailName.from_data_paths(
+                document_folder_path=document_dir_select.folder_path,
+                excel_file_path=name_email_file_select.file_path,
+                first_name_column=name_email_config_frame.first_name_column,
+                email_column=name_email_config_frame.email_column,
+                document_file_type=document_config_frame.document_file_types,
+                last_name_column=name_email_config_frame.last_name_column,
+                sheet_name=name_email_config_frame.sheet_name,
+                start_row_for_names=name_email_config_frame.start_row_for_names,
+                stop_row_for_names=name_email_config_frame.stop_row_for_names,
+            )
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+            return
+        finally:
+            pop_up.destroy()
 
-        document_email_name = DocumentEmailName.from_data_paths(
-            document_folder_path=document_dir_select.folder_path,
-            excel_file_path=name_email_file_select.file_path,
-            first_name_column=name_email_config_frame.first_name_column,
-            email_column=name_email_config_frame.email_column,
-            document_file_type=document_config_frame.document_file_types,
-            last_name_column=name_email_config_frame.last_name_column,
-            sheet_name=name_email_config_frame.sheet_name,
-            start_row_for_names=name_email_config_frame.start_row_for_names,
-            stop_row_for_names=name_email_config_frame.stop_row_for_names,
-        )
-
-        pop_up.destroy()
-
-        confirm = CTkToplevel()
+        confirm = CTkToplevel(root)
+        confirm.transient(root)
         confirm.title("Confirm")
         confirm.resizable(width=False, height=False)
         confirm_frame = CTkFrame(confirm)
@@ -376,7 +383,8 @@ def process(email_config: EmailConfig, document_dir_select: FolderSelect, docume
 
         def send() -> None:
             confirm.destroy()
-            pop_up = CTkToplevel()
+            pop_up = CTkToplevel(root)
+            pop_up.transient(root)
             pop_up.title("Sending emails")
             pop_up.resizable(width=False, height=False)
 
@@ -402,9 +410,11 @@ def process(email_config: EmailConfig, document_dir_select: FolderSelect, docume
             progressbar = CTkProgressBar(sending_email_frame, width=600, height=10)
             progressbar.set(0)
             progressbar.grid(row=2, **PADDING)
+            progress_label = CTkLabel(sending_email_frame, text="")
+            progress_label.grid(row=3, **PADDING)
             cancel_event = threading.Event()
             cancel_button = CTkButton(sending_email_frame, text="Cancel", command=cancel_event.set, fg_color="dark red")
-            cancel_button.grid(row=3, column=0, **PADDING)
+            cancel_button.grid(row=4, column=0, **PADDING)
             document_name_email_sent = []
             failed_send_email = threading.Event()
 
@@ -422,6 +432,7 @@ def process(email_config: EmailConfig, document_dir_select: FolderSelect, docume
                         END, f"* Could not send {document_name:<40} -> {email} ({name})\n. Error: {error}\n")
                 sending_email_text.configure(state=DISABLED)
                 progressbar.set((progressbar.get() * max_progress + 1) / max_progress)
+                progress_label.configure(text=f"{int(round(progressbar.get() * max_progress))}/{max_progress}")
                 return False
 
             send_email_thread = threading.Thread(
@@ -500,11 +511,11 @@ def main() -> int:
         root,
         text="Start",
         fg_color="green",
-        command=lambda: process(email_config, document_dir_select, document_config_frame, name_email_file_select,
+        command=lambda: process(root, email_config, document_dir_select, document_config_frame, name_email_file_select,
                                 name_email_config_frame, email_message_config_frame))
     start_button.grid(pady=10, row=4, column=0)
 
-    email_config_button = CTkButton(root, text="Email Config", command=lambda: modify_email_config(email_config))
+    email_config_button = CTkButton(root, text="Email Config", command=lambda: modify_email_config(root, email_config))
     email_config_button.grid(pady=10, row=4, column=1)
 
     def on_closing():
